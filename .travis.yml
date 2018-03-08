@@ -1,10 +1,16 @@
 language: generic
-osx_image: xcode8.3
-os:
-  - linux
-  - osx
-sudo: required
-dist: trusty
+matrix:
+   include:
+       #test Linux
+       - os: linux
+         dist: trusty
+         sudo: required
+      #test Xcode 8.3
+       - os: osx
+         osx_image: xcode8.3
+      #test Xcode 9.2
+       - os: osx
+         osx_image: xcode9.2
 addons:
   apt:
     packages:
