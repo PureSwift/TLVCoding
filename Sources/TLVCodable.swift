@@ -36,35 +36,29 @@ public protocol TLVTypeCode {
 
 // MARK: - Codable Implementations
 
-public extension TLVDecodable where Self: RawRepresentable, Self.RawValue: RawRepresentable, Self.RawValue.RawValue: Integer {
+#if swift(>=3.2)
+
+public extension TLVDecodable where Self: RawRepresentable, Self.RawValue: RawRepresentable, Self.RawValue.RawValue == UInt8 {
     
     public init?(valueData: Foundation.Data) {
-        
-        typealias IntegerType = Self.RawValue.RawValue
-        
-        assert(MemoryLayout<IntegerType>.size == 1)
         
         guard valueData.count == 1
             else { return nil }
         
         let valueByte = valueData[0]
         
-        guard let rawValue = RawValue.init(rawValue: numericCast(valueByte) as IntegerType)
+        guard let rawValue = RawValue.init(rawValue: valueByte)
             else { return nil }
         
         self.init(rawValue: rawValue)
     }
 }
 
-public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: RawRepresentable, Self.RawValue.RawValue: Integer {
+public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: RawRepresentable, Self.RawValue.RawValue == UInt8 {
     
     public var valueData: Foundation.Data {
         
-        typealias IntegerType = Self.RawValue.RawValue
-        
-        assert(MemoryLayout<IntegerType>.size == 1)
-        
-        let byte = numericCast(rawValue.rawValue) as UInt8
+        let byte = rawValue.rawValue
         
         return Data([byte])
     }
@@ -91,3 +85,6 @@ public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: Strin
         return data
     }
 }
+
+#endif
+
