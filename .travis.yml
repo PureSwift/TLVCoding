@@ -30,5 +30,5 @@ script:
   # Run Unit Tests
   - swift test
   # Compile with Xcode
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then xcodebuild clean test -scheme TLVCoding-macOS
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then xcodebuild clean build -scheme TLVCoding-iOS
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then xcodebuild clean test -scheme TLVCoding-macOS ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then xcodebuild clean build -scheme TLVCoding-iOS ; fi
