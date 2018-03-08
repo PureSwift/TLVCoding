@@ -64,22 +64,22 @@ public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: RawRe
     }
 }
 
-public extension TLVDecodable where Self: RawRepresentable, Self.RawValue: StringProtocol {
+public extension TLVDecodable where Self: RawRepresentable, Self.RawValue == String {
     
     public init?(valueData: Foundation.Data) {
         
-        guard let string = String(data: valueData, encoding: .utf8) as? Self.RawValue
+        guard let string = String(data: valueData, encoding: .utf8)
             else { return nil }
         
         self.init(rawValue: string)
     }
 }
 
-public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: StringProtocol {
+public extension TLVEncodable where Self: RawRepresentable, Self.RawValue == String {
     
     public var valueData: Foundation.Data {
                 
-        guard let data = (self.rawValue as? String)?.data(using: .utf8)
+        guard let data = self.rawValue.data(using: .utf8)
             else { fatalError("Could not encode string") }
         
         return data
