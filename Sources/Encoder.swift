@@ -24,7 +24,7 @@ public struct TLVEncoder {
             
             let length = UInt8(valueData.count)
             
-            data += [type, length] + valueData
+            data += Data([type, length]) + valueData
         }
         
         return data
