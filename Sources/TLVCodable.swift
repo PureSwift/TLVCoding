@@ -85,6 +85,70 @@ public extension TLVEncodable where Self: RawRepresentable, Self.RawValue == Str
         return data
     }
 }
+    
+#elseif swift(>=3.0)
+    
+    public extension TLVDecodable where Self: RawRepresentable, Self.RawValue: RawRepresentable, Self.RawValue.RawValue: UnsignedInteger {
+        
+        public init?(valueData: Foundation.Data) {
+            
+            typealias IntegerType = Self.RawValue.RawValue
+            
+            assert(MemoryLayout<IntegerType>.size == 1, "Default implementation only for UInt8 enums")
+            
+            guard valueData.count == 1
+                else { return nil }
+            
+            let valueByte = valueData[0]
+            
+            guard let rawValue = RawValue.init(rawValue: valueByte as! IntegerType)
+                else { return nil }
+            
+            self.init(rawValue: rawValue)
+        }
+    }
+    
+    public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: RawRepresentable, Self.RawValue.RawValue: UnsignedInteger {
+        
+        public var valueData: Foundation.Data {
+            
+            typealias IntegerType = Self.RawValue.RawValue
+            
+            assert(MemoryLayout<IntegerType>.size == 1, "Default implementation only for UInt8 enums")
+            
+            let byte = numericCast(rawValue.rawValue) as UInt8
+            
+            return Data([byte])
+        }
+    }
+
+    public extension TLVDecodable where Self: RawRepresentable, Self.RawValue: ExpressibleByStringLiteral {
+        
+        public init?(valueData: Foundation.Data) {
+            
+            typealias StringType = Self.RawValue
+            
+            assert(Self.RawValue.self == String.self, "Default implementation only for String")
+            
+            guard let string = String(data: valueData, encoding: .utf8)
+                else { return nil }
+            
+            self.init(rawValue: string as! StringType)
+        }
+    }
+    
+    public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: ExpressibleByStringLiteral {
+        
+        public var valueData: Foundation.Data {
+            
+            assert(Self.RawValue.self == String.self, "Default implementation only for String")
+            
+            guard let data = (self.rawValue as! String).data(using: .utf8)
+                else { fatalError("Could not encode string") }
+            
+            return data
+        }
+    }
 
 #endif
 
