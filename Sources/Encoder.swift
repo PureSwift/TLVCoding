@@ -16,7 +16,7 @@ public struct TLVEncoder {
         
         for encodable in encodables {
             
-            let type = type(of: encodable).typeCode.rawValue
+            let type = Swift.type(of: encodable).typeCode.rawValue
             
             let valueData = encodable.valueData
             

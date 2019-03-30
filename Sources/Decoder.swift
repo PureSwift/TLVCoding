@@ -8,9 +8,9 @@
 
 import Foundation
 
-public struct TLVDecoder {
+struct TLVDecoder {
     
-    public static func decode(data: Data, from types: [TLVDecodable.Type]) throws -> [TLVDecodable] {
+    static func decode(data: Data, from types: [TLVDecodable.Type]) throws -> [TLVDecodable] {
         
         var offset = 0
         
@@ -51,14 +51,14 @@ public struct TLVDecoder {
 
 // MARK: - Supporting Types
 
-public extension TLVDecoder {
+extension TLVDecoder {
     
-    public struct DecodingContext {
+    struct DecodingContext {
         
-        public let offset: Int
+        let offset: Int
     }
     
-    public enum DecodingError: Swift.Error {
+    enum DecodingError: Swift.Error {
         
         case invalidSize(Int, context: DecodingContext)
         case invalidType(UInt8, context: DecodingContext)
@@ -70,9 +70,9 @@ public extension TLVDecoder {
 
 // MARK: - Coder Convenience Extensions
 
-public extension TLVDecoder {
+extension TLVDecoder {
     
-    public static func decode <Decodable: TLVDecodable> (data: Data, from type: Decodable.Type) throws -> Decodable {
+    static func decode <Decodable: TLVDecodable> (data: Data, from type: Decodable.Type) throws -> Decodable {
         
         let decodables = try decode(data: data, from: [type])
         
@@ -83,7 +83,7 @@ public extension TLVDecoder {
         return decodable
     }
     
-    public static func decode <T1: TLVDecodable, T2: TLVDecodable>
+    static func decode <T1: TLVDecodable, T2: TLVDecodable>
         (data: Data, from types: (T1.Type, T2.Type)) throws -> (T1, T2) {
         
         let decodables = try decode(data: data, from: [types.0, types.1])
@@ -96,7 +96,7 @@ public extension TLVDecoder {
         return (decodable1, decodable2)
     }
     
-    public static func decode <T1: TLVDecodable, T2: TLVDecodable, T3: TLVDecodable>
+    static func decode <T1: TLVDecodable, T2: TLVDecodable, T3: TLVDecodable>
         (data: Data, from types: (T1.Type, T2.Type, T3.Type)) throws -> (T1, T2, T3) {
         
         let decodables = try decode(data: data, from: [types.0, types.1, types.2])
@@ -110,7 +110,7 @@ public extension TLVDecoder {
         return (decodable1, decodable2, decodable3)
     }
     
-    public static func decode <T1: TLVDecodable, T2: TLVDecodable, T3: TLVDecodable, T4: TLVDecodable>
+    static func decode <T1: TLVDecodable, T2: TLVDecodable, T3: TLVDecodable, T4: TLVDecodable>
         (data: Data, from types: (T1.Type, T2.Type, T3.Type, T4.Type)) throws -> (T1, T2, T3, T4) {
         
         let decodables = try decode(data: data, from: [types.0, types.1, types.2, types.3])
@@ -125,7 +125,7 @@ public extension TLVDecoder {
         return (decodable1, decodable2, decodable3, decodable4)
     }
     
-    public static func decode <T1: TLVDecodable, T2: TLVDecodable, T3: TLVDecodable, T4: TLVDecodable, T5: TLVDecodable>
+    static func decode <T1: TLVDecodable, T2: TLVDecodable, T3: TLVDecodable, T4: TLVDecodable, T5: TLVDecodable>
         (data: Data, from types: (T1.Type, T2.Type, T3.Type, T4.Type, T5.Type)) throws -> (T1, T2, T3, T4, T5) {
         
         let decodables = try decode(data: data, from: [types.0, types.1, types.2, types.3, types.4])
@@ -141,7 +141,7 @@ public extension TLVDecoder {
         return (decodable1, decodable2, decodable3, decodable4, decodable5)
     }
     
-    public static func decode <T1: TLVDecodable, T2: TLVDecodable, T3: TLVDecodable, T4: TLVDecodable, T5: TLVDecodable, T6: TLVDecodable>
+    static func decode <T1: TLVDecodable, T2: TLVDecodable, T3: TLVDecodable, T4: TLVDecodable, T5: TLVDecodable, T6: TLVDecodable>
         (data: Data, from types: (T1.Type, T2.Type, T3.Type, T4.Type, T5.Type, T6.Type)) throws -> (T1, T2, T3, T4, T5, T6) {
         
         let decodables = try decode(data: data, from: [types.0, types.1, types.2, types.3, types.4, types.5])
@@ -158,11 +158,11 @@ public extension TLVDecoder {
         return (decodable1, decodable2, decodable3, decodable4, decodable5, decodable6)
     }
     
-    public static func decodeOptional <T1: TLVDecodable, T2: TLVDecodable, T3: TLVDecodable, T4: TLVDecodable, T5: TLVDecodable, T6: TLVDecodable>
+    static func decodeOptional <T1: TLVDecodable, T2: TLVDecodable, T3: TLVDecodable, T4: TLVDecodable, T5: TLVDecodable, T6: TLVDecodable>
         (data: Data, from types: (T1.Type, T2.Type, T3.Type, T4.Type, T5.Type, T6.Type)) throws -> (T1?, T2?, T3?, T4?, T5?, T6?) {
         
         let decodables = try decode(data: data, from: [types.0, types.1, types.2, types.3, types.4, types.5])
-            .sorted(by: { type(of: $0.0).typeCode.rawValue < type(of: $0.1).typeCode.rawValue })
+            .sorted(by: { type(of: $0).typeCode.rawValue < type(of: $1).typeCode.rawValue })
         
         return (decodables.count > 0 ? decodables[0] as? T1 : nil,
                 decodables.count > 1 ? decodables[1] as? T2 : nil,

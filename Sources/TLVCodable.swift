@@ -40,7 +40,7 @@ public protocol TLVTypeCode {
 
 public extension TLVDecodable where Self: RawRepresentable, Self.RawValue: RawRepresentable, Self.RawValue.RawValue == UInt8 {
     
-    public init?(valueData: Foundation.Data) {
+    init?(valueData: Foundation.Data) {
         
         guard valueData.count == 1
             else { return nil }
@@ -56,7 +56,7 @@ public extension TLVDecodable where Self: RawRepresentable, Self.RawValue: RawRe
 
 public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: RawRepresentable, Self.RawValue.RawValue == UInt8 {
     
-    public var valueData: Foundation.Data {
+    var valueData: Foundation.Data {
         
         let byte = rawValue.rawValue
         
@@ -66,7 +66,7 @@ public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: RawRe
 
 public extension TLVDecodable where Self: RawRepresentable, Self.RawValue == String {
     
-    public init?(valueData: Foundation.Data) {
+    init?(valueData: Foundation.Data) {
         
         guard let string = String(data: valueData, encoding: .utf8)
             else { return nil }
@@ -77,7 +77,7 @@ public extension TLVDecodable where Self: RawRepresentable, Self.RawValue == Str
 
 public extension TLVEncodable where Self: RawRepresentable, Self.RawValue == String {
     
-    public var valueData: Foundation.Data {
+    var valueData: Foundation.Data {
                 
         guard let data = self.rawValue.data(using: .utf8)
             else { fatalError("Could not encode string") }
@@ -90,7 +90,7 @@ public extension TLVEncodable where Self: RawRepresentable, Self.RawValue == Str
     
     public extension TLVDecodable where Self: RawRepresentable, Self.RawValue: RawRepresentable, Self.RawValue.RawValue: UnsignedInteger {
         
-        public init?(valueData: Foundation.Data) {
+        init?(valueData: Foundation.Data) {
             
             typealias IntegerType = Self.RawValue.RawValue
             
@@ -110,7 +110,7 @@ public extension TLVEncodable where Self: RawRepresentable, Self.RawValue == Str
     
     public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: RawRepresentable, Self.RawValue.RawValue: UnsignedInteger {
         
-        public var valueData: Foundation.Data {
+        var valueData: Foundation.Data {
             
             typealias IntegerType = Self.RawValue.RawValue
             
@@ -124,7 +124,7 @@ public extension TLVEncodable where Self: RawRepresentable, Self.RawValue == Str
 
     public extension TLVDecodable where Self: RawRepresentable, Self.RawValue: ExpressibleByStringLiteral {
         
-        public init?(valueData: Foundation.Data) {
+        init?(valueData: Foundation.Data) {
             
             typealias StringType = Self.RawValue
             
@@ -139,7 +139,7 @@ public extension TLVEncodable where Self: RawRepresentable, Self.RawValue == Str
     
     public extension TLVEncodable where Self: RawRepresentable, Self.RawValue: ExpressibleByStringLiteral {
         
-        public var valueData: Foundation.Data {
+        var valueData: Foundation.Data {
             
             assert(Self.RawValue.self == String.self, "Default implementation only for String")
             
