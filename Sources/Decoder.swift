@@ -8,9 +8,9 @@
 
 import Foundation
 
-struct TLVDecoder {
+public struct TLVDecoder {
     
-    static func decode(data: Data, from types: [TLVDecodable.Type]) throws -> [TLVDecodable] {
+    public static func decode(data: Data, from types: [TLVDecodable.Type]) throws -> [TLVDecodable] {
         
         var offset = 0
         
@@ -51,11 +51,11 @@ struct TLVDecoder {
 
 // MARK: - Supporting Types
 
-extension TLVDecoder {
+public extension TLVDecoder {
     
     struct DecodingContext {
         
-        let offset: Int
+        public let offset: Int
     }
     
     enum DecodingError: Swift.Error {
@@ -70,7 +70,7 @@ extension TLVDecoder {
 
 // MARK: - Coder Convenience Extensions
 
-extension TLVDecoder {
+public extension TLVDecoder {
     
     static func decode <Decodable: TLVDecodable> (data: Data, from type: Decodable.Type) throws -> Decodable {
         
@@ -162,7 +162,7 @@ extension TLVDecoder {
         (data: Data, from types: (T1.Type, T2.Type, T3.Type, T4.Type, T5.Type, T6.Type)) throws -> (T1?, T2?, T3?, T4?, T5?, T6?) {
         
         let decodables = try decode(data: data, from: [types.0, types.1, types.2, types.3, types.4, types.5])
-            .sorted(by: { type(of: $0).typeCode.rawValue < type(of: $1).typeCode.rawValue })
+            .sorted(by: { Swift.type(of: $0).typeCode.rawValue < type(of: $1).typeCode.rawValue })
         
         return (decodables.count > 0 ? decodables[0] as? T1 : nil,
                 decodables.count > 1 ? decodables[1] as? T2 : nil,
