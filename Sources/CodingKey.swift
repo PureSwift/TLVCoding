@@ -29,30 +29,3 @@ public extension TLVCodingKey {
         return Int(code.rawValue)
     }
 }
-
-internal extension TLVTypeCode {
-    
-    init? <K: CodingKey> (codingKey: K) {
-        
-        if let tlvCodingKey = codingKey as? TLVCodingKey {
-            
-            self = tlvCodingKey.code
-            
-        } else if let intValue = codingKey.intValue {
-            
-            guard intValue <= Int(UInt8.max),
-                intValue >= Int(UInt8.min)
-                else { return nil }
-            
-            self.init(rawValue: UInt8(intValue))
-            
-        } else if MemoryLayout<K>.size == MemoryLayout<UInt8>.size {
-            
-            self.init(rawValue: unsafeBitCast(codingKey, to: UInt8.self))
-            
-        } else {
-            
-            return nil
-        }
-    }
-}

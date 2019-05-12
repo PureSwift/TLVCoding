@@ -36,6 +36,10 @@
 		6E8FE7632288824000CBCFA9 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7612288824000CBCFA9 /* Item.swift */; };
 		6E8FE7642288824000CBCFA9 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7612288824000CBCFA9 /* Item.swift */; };
 		6E8FE7652288824000CBCFA9 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7612288824000CBCFA9 /* Item.swift */; };
+		6E8FE7672288920600CBCFA9 /* TypeCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7662288920600CBCFA9 /* TypeCode.swift */; };
+		6E8FE7682288920600CBCFA9 /* TypeCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7662288920600CBCFA9 /* TypeCode.swift */; };
+		6E8FE7692288920600CBCFA9 /* TypeCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7662288920600CBCFA9 /* TypeCode.swift */; };
+		6E8FE76A2288920600CBCFA9 /* TypeCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7662288920600CBCFA9 /* TypeCode.swift */; };
 		8933C78E1EB5B82C000D00A4 /* TLVCodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933C7891EB5B82A000D00A4 /* TLVCodingTests.swift */; };
 		8933C78F1EB5B82C000D00A4 /* TLVCodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933C7891EB5B82A000D00A4 /* TLVCodingTests.swift */; };
 		8933C7901EB5B82D000D00A4 /* TLVCodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933C7891EB5B82A000D00A4 /* TLVCodingTests.swift */; };
@@ -80,6 +84,7 @@
 		6E8FE7572288811800CBCFA9 /* Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Data.swift; sourceTree = "<group>"; };
 		6E8FE75C228881DF00CBCFA9 /* DataConvertible.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataConvertible.swift; sourceTree = "<group>"; };
 		6E8FE7612288824000CBCFA9 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
+		6E8FE7662288920600CBCFA9 /* TypeCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypeCode.swift; sourceTree = "<group>"; };
 		8933C7891EB5B82A000D00A4 /* TLVCodingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLVCodingTests.swift; sourceTree = "<group>"; };
 		AD2FAA261CD0B6D800659CF4 /* TLVCoding.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = TLVCoding.plist; sourceTree = "<group>"; };
 		AD2FAA281CD0B6E100659CF4 /* TLVCodingTests.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = TLVCodingTests.plist; sourceTree = "<group>"; };
@@ -183,6 +188,7 @@
 				6E8F3AFB2051DA85006964D5 /* Encoder.swift */,
 				6E8F3B002051DA8D006964D5 /* Decoder.swift */,
 				6E8FE7612288824000CBCFA9 /* Item.swift */,
+				6E8FE7662288920600CBCFA9 /* TypeCode.swift */,
 				6E8FE75222887B2B00CBCFA9 /* CodingKey.swift */,
 				6E8FE7572288811800CBCFA9 /* Data.swift */,
 				6E8FE75C228881DF00CBCFA9 /* DataConvertible.swift */,
@@ -404,11 +410,11 @@
 					};
 					52D6DA0E1BF000BD002C0205 = {
 						CreatedOnToolsVersion = 7.1;
-						LastSwiftMigration = 0800;
+						LastSwiftMigration = 1020;
 					};
 					DD7502791C68FCFC006590AF = {
 						CreatedOnToolsVersion = 7.2.1;
-						LastSwiftMigration = 0800;
+						LastSwiftMigration = 1020;
 					};
 					DD75028C1C690C7A006590AF = {
 						CreatedOnToolsVersion = 7.2.1;
@@ -503,6 +509,7 @@
 				6E8F3AF72051DA65006964D5 /* TLVCodable.swift in Sources */,
 				6E8FE7622288824000CBCFA9 /* Item.swift in Sources */,
 				6E8FE75322887B2B00CBCFA9 /* CodingKey.swift in Sources */,
+				6E8FE7672288920600CBCFA9 /* TypeCode.swift in Sources */,
 				6E8FE75D228881DF00CBCFA9 /* DataConvertible.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -525,6 +532,7 @@
 				6E8F3AF92051DA65006964D5 /* TLVCodable.swift in Sources */,
 				6E8FE7642288824000CBCFA9 /* Item.swift in Sources */,
 				6E8FE75522887B2B00CBCFA9 /* CodingKey.swift in Sources */,
+				6E8FE7692288920600CBCFA9 /* TypeCode.swift in Sources */,
 				6E8FE75F228881DF00CBCFA9 /* DataConvertible.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -539,6 +547,7 @@
 				6E8F3AFA2051DA65006964D5 /* TLVCodable.swift in Sources */,
 				6E8FE7652288824000CBCFA9 /* Item.swift in Sources */,
 				6E8FE75622887B2B00CBCFA9 /* CodingKey.swift in Sources */,
+				6E8FE76A2288920600CBCFA9 /* TypeCode.swift in Sources */,
 				6E8FE760228881DF00CBCFA9 /* DataConvertible.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -553,6 +562,7 @@
 				6E8F3AF82051DA65006964D5 /* TLVCodable.swift in Sources */,
 				6E8FE7632288824000CBCFA9 /* Item.swift in Sources */,
 				6E8FE75422887B2B00CBCFA9 /* CodingKey.swift in Sources */,
+				6E8FE7682288920600CBCFA9 /* TypeCode.swift in Sources */,
 				6E8FE75E228881DF00CBCFA9 /* DataConvertible.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
