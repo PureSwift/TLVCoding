@@ -24,14 +24,13 @@ final class TLVCodingTests: XCTestCase {
             else { XCTFail("Could decode"); return }
         
         XCTAssert(value.data == data, "Could not encode")
-        
         XCTAssert(value == Person(gender: .male, name: "Coleman"))
     }
 }
 
 // MARK: - Supporting Types
 
-public struct Person: Equatable {
+public struct Person: Codable, Equatable, Hashable {
     
     public enum Gender: UInt8 {
         
@@ -47,12 +46,6 @@ public struct Person: Equatable {
         
         self.gender = gender
         self.name = name
-    }
-    
-    public static func == (lhs: Person, rhs: Person) -> Bool {
-        
-        return lhs.gender == rhs.gender
-            && lhs.name == rhs.name
     }
     
     public init?(data: Data) {

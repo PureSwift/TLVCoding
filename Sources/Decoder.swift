@@ -10,7 +10,13 @@ import Foundation
 
 public struct TLVDecoder {
     
-    public static func decode(data: Data, from types: [TLVDecodable.Type]) throws -> [TLVDecodable] {
+    
+}
+
+
+public extension TLVDecoder {
+    
+    static func decode(data: Data, from types: [TLVDecodable.Type]) throws -> [TLVDecodable] {
         
         var offset = 0
         
