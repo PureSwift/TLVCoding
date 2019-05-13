@@ -50,3 +50,11 @@ public extension TLVCodingKey where Self: CaseIterable, Self: RawRepresentable, 
         self = value
     }
 }
+
+internal extension Sequence where Element == CodingKey {
+    
+    /// KVC path string for current coding path.
+    var path: String {
+        return reduce("", { $0 + "\($0.isEmpty ? "" : ".")" + $1.stringValue })
+    }
+}

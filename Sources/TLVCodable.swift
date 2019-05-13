@@ -14,10 +14,17 @@ public typealias TLVCodable = TLVEncodable & TLVDecodable
 /// TLV Decodable type
 public protocol TLVDecodable {
     
-    init?(tlvData: Foundation.Data)
+    init?(tlvData: Data)
 }
 
 public protocol TLVEncodable {
     
-    var tlvData: Foundation.Data { get }
+    var tlvData: Data { get }
+}
+
+/// TLV Numeric Encoding Format
+public enum TLVNumericFormat {
+    
+    case bigEndian
+    case littleEndian
 }

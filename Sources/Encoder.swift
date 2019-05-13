@@ -8,6 +8,7 @@
 
 import Foundation
 
+/// TLV8 Encoder
 public struct TLVEncoder {
     
     // MARK: - Properties
@@ -18,6 +19,9 @@ public struct TLVEncoder {
     /// Logger handler
     public var log: ((String) -> ())?
     
+    /// Format for numeric values.
+    public var numericFormat: TLVNumericFormat = .littleEndian
+    
     // MARK: - Initialization
     
     public init() { }
@@ -26,7 +30,8 @@ public struct TLVEncoder {
     
     public func encode <T: Encodable> (_ value: T) throws -> Data {
         
-        let encoder = Encoder(userInfo: userInfo, log: log)
+        let options = Encoder.Options(numericFormat: numericFormat)
+        let encoder = Encoder(userInfo: userInfo, log: log, options: options)
         try value.encode(to: encoder)
         assert(encoder.stack.containers.count == 1)
         
@@ -37,27 +42,12 @@ public struct TLVEncoder {
         
         return container.data
     }
-}
-
-public extension TLVEncoder {
     
-    func encode(_ items: [TLVItem]) -> Data {
+    public func encode(_ items: [TLVItem]) -> Data {
         return Data(items)
     }
     
-    func encode(_ items: TLVItem...) -> Data {
-        return Data(items)
-    }
-}
-
-@available(*, deprecated, message:  "Use TLVEncoder instance instead")
-public extension TLVEncoder {
-    
-    static func encode(_ items: [TLVItem]) -> Data {
-        return Data(items)
-    }
-    
-    static func encode(_ items: TLVItem...) -> Data {
+    public func encode(_ items: TLVItem...) -> Data {
         return Data(items)
     }
 }
@@ -77,25 +67,29 @@ internal extension TLVEncoder {
         /// Logger
         let log: ((String) -> ())?
         
+        let options: Options
+        
         private(set) var stack: Stack
         
         // MARK: - Initialization
         
         init(codingPath: [CodingKey] = [],
              userInfo: [CodingUserInfoKey : Any],
-             log: ((String) -> ())?) {
+             log: ((String) -> ())?,
+             options: Options) {
             
             self.stack = Stack()
             self.codingPath = codingPath
             self.userInfo = userInfo
             self.log = log
+            self.options = options
         }
         
         // MARK: - Encoder
         
         func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> where Key : CodingKey {
             
-            log?("Requested container keyed by \(type) for path \"\(codingPathString)\"")
+            log?("Requested container keyed by \(type) for path \"\(codingPath.path)\"")
             
             let stackContainer = ItemsContainer()
             self.stack.push(.items(stackContainer))
@@ -107,7 +101,7 @@ internal extension TLVEncoder {
         
         func unkeyedContainer() -> UnkeyedEncodingContainer {
             
-            log?("Requested unkeyed container for path \"\(codingPathString)\"")
+            log?("Requested unkeyed container for path \"\(codingPath.path)\"")
             
             let stackContainer = ItemContainer()
             self.stack.push(.item(stackContainer))
@@ -117,7 +111,7 @@ internal extension TLVEncoder {
         
         func singleValueContainer() -> SingleValueEncodingContainer {
             
-            log?("Requested single value container for path \"\(codingPathString)\"")
+            log?("Requested single value container for path \"\(codingPath.path)\"")
             
             let stackContainer = ItemContainer()
             self.stack.push(.item(stackContainer))
@@ -129,13 +123,15 @@ internal extension TLVEncoder {
 
 internal extension TLVEncoder.Encoder {
     
-    /// KVC path string for current coding path.
-    var codingPathString: String {
+    struct Options {
         
-        return codingPath.reduce("", { $0 + "\($0.isEmpty ? "" : ".")" + $1.stringValue })
+        let numericFormat: TLVNumericFormat
     }
+}
+
+internal extension TLVEncoder.Encoder {
     
-    func typeCode <Key: CodingKey> (for key: Key, value: Any) throws -> TLVTypeCode {
+    func typeCode <Key: CodingKey, T> (for key: Key, value: T) throws -> TLVTypeCode {
         
         if let tlvCodingKey = key as? TLVCodingKey {
             
@@ -151,7 +147,8 @@ internal extension TLVEncoder.Encoder {
             
             return TLVTypeCode(rawValue: UInt8(intValue))
             
-        } else if MemoryLayout<Key>.size == MemoryLayout<UInt8>.size {
+        } else if MemoryLayout<Key>.size == MemoryLayout<UInt8>.size,
+            Mirror(reflecting: Key.self).displayStyle == .enum {
             
             return TLVTypeCode(rawValue: unsafeBitCast(key, to: UInt8.self))
             
@@ -167,6 +164,19 @@ internal extension TLVEncoder.Encoder {
     @inline(__always)
     func box <T: TLVEncodable> (_ value: T) -> Data {
         return value.tlvData
+    }
+    
+    @inline(__always)
+    func boxNumeric <T: TLVEncodable & FixedWidthInteger> (_ value: T) -> Data {
+        
+        let endianValue: T
+        switch options.numericFormat {
+        case .bigEndian:
+            endianValue = value.bigEndian
+        case .littleEndian:
+            endianValue = value.littleEndian
+        }
+        return endianValue.tlvData
     }
     
     func boxEncodable <T: Encodable> (_ value: T) throws -> Data {
@@ -269,7 +279,7 @@ internal extension TLVEncoder.Encoder {
 
 // MARK: - KeyedEncodingContainerProtocol
 
-final class TLVKeyedContainer <K : CodingKey> : KeyedEncodingContainerProtocol {
+internal final class TLVKeyedContainer <K : CodingKey> : KeyedEncodingContainerProtocol {
     
     typealias Key = K
     
@@ -300,33 +310,61 @@ final class TLVKeyedContainer <K : CodingKey> : KeyedEncodingContainerProtocol {
         // do nothing
     }
     
-    func encode(_ value: Bool, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: Bool, forKey key: K) throws {
+        try encodeTLV(value, forKey: key)
+    }
     
-    func encode(_ value: Int, forKey key: K) throws { try _encode(Int32(value), forKey: key) }
+    func encode(_ value: Int, forKey key: K) throws {
+        try encodeNumeric(Int32(value), forKey: key)
+    }
     
-    func encode(_ value: Int8, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: Int8, forKey key: K) throws {
+        try encodeTLV(value, forKey: key)
+    }
     
-    func encode(_ value: Int16, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: Int16, forKey key: K) throws {
+        try encodeNumeric(value, forKey: key)
+    }
     
-    func encode(_ value: Int32, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: Int32, forKey key: K) throws {
+        try encodeNumeric(value, forKey: key)
+    }
     
-    func encode(_ value: Int64, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: Int64, forKey key: K) throws {
+        try encodeNumeric(value, forKey: key)
+    }
     
-    func encode(_ value: UInt, forKey key: K) throws { try _encode(UInt32(value), forKey: key) }
+    func encode(_ value: UInt, forKey key: K) throws {
+        try encodeNumeric(UInt32(value), forKey: key)
+    }
     
-    func encode(_ value: UInt8, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: UInt8, forKey key: K) throws {
+        try encodeTLV(value, forKey: key)
+    }
     
-    func encode(_ value: UInt16, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: UInt16, forKey key: K) throws {
+        try encodeNumeric(value, forKey: key)
+    }
     
-    func encode(_ value: UInt32, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: UInt32, forKey key: K) throws {
+        try encodeNumeric(value, forKey: key)
+    }
     
-    func encode(_ value: UInt64, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: UInt64, forKey key: K) throws {
+        try encodeNumeric(value, forKey: key)
+    }
     
-    func encode(_ value: Float, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: Float, forKey key: K) throws {
+        try encodeNumeric(value.bitPattern, forKey: key)
+    }
     
-    func encode(_ value: Double, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: Double, forKey key: K) throws {
+        try encodeNumeric(value.bitPattern, forKey: key)
+    }
     
-    func encode(_ value: String, forKey key: K) throws { try _encode(value, forKey: key) }
+    func encode(_ value: String, forKey key: K) throws {
+        try encodeTLV(value, forKey: key)
+    }
     
     func encode <T: Encodable> (_ value: T, forKey key: K) throws {
         
@@ -358,7 +396,15 @@ final class TLVKeyedContainer <K : CodingKey> : KeyedEncodingContainerProtocol {
     
     // MARK: - Private Methods
     
-    private func _encode <T: TLVEncodable> (_ value: T, forKey key: K) throws {
+    private func encodeNumeric <T: TLVEncodable & FixedWidthInteger> (_ value: T, forKey key: K) throws {
+        
+        self.encoder.codingPath.append(key)
+        defer { self.encoder.codingPath.removeLast() }
+        let data = encoder.boxNumeric(value)
+        try setValue(value, data: data, for: key)
+    }
+    
+    private func encodeTLV <T: TLVEncodable> (_ value: T, forKey key: K) throws {
         
         self.encoder.codingPath.append(key)
         defer { self.encoder.codingPath.removeLast() }
@@ -366,9 +412,9 @@ final class TLVKeyedContainer <K : CodingKey> : KeyedEncodingContainerProtocol {
         try setValue(value, data: data, for: key)
     }
     
-    private func setValue(_ value: Any, data: Data, for key: Key) throws {
+    private func setValue <T> (_ value: T, data: Data, for key: Key) throws {
         
-        encoder.log?("Will encode value for key \(key.stringValue) at path \"\(encoder.codingPathString)\"")
+        encoder.log?("Will encode value for key \(key.stringValue) at path \"\(encoder.codingPath.path)\"")
         
         let type = try encoder.typeCode(for: key, value: value)
         let item = TLVItem(type: type, value: data)
@@ -378,7 +424,7 @@ final class TLVKeyedContainer <K : CodingKey> : KeyedEncodingContainerProtocol {
 
 // MARK: - SingleValueEncodingContainer
 
-final class TLVSingleValueEncodingContainer: SingleValueEncodingContainer {
+internal final class TLVSingleValueEncodingContainer: SingleValueEncodingContainer {
     
     // MARK: - Properties
     
@@ -414,29 +460,29 @@ final class TLVSingleValueEncodingContainer: SingleValueEncodingContainer {
     
     func encode(_ value: String) throws { write(encoder.box(value)) }
     
-    func encode(_ value: Double) throws { write(encoder.box(value)) }
+    func encode(_ value: Double) throws { write(encoder.boxNumeric(value.bitPattern)) }
     
-    func encode(_ value: Float) throws { write(encoder.box(value)) }
+    func encode(_ value: Float) throws { write(encoder.boxNumeric(value.bitPattern)) }
     
-    func encode(_ value: Int) throws { write(encoder.box(Int32(value))) }
+    func encode(_ value: Int) throws { write(encoder.boxNumeric(Int32(value))) }
     
     func encode(_ value: Int8) throws { write(encoder.box(value)) }
     
-    func encode(_ value: Int16) throws { write(encoder.box(value)) }
+    func encode(_ value: Int16) throws { write(encoder.boxNumeric(value)) }
     
-    func encode(_ value: Int32) throws { write(encoder.box(value)) }
+    func encode(_ value: Int32) throws { write(encoder.boxNumeric(value)) }
     
-    func encode(_ value: Int64) throws { write(encoder.box(value)) }
+    func encode(_ value: Int64) throws { write(encoder.boxNumeric(value)) }
     
-    func encode(_ value: UInt) throws { write(encoder.box(UInt32(value))) }
+    func encode(_ value: UInt) throws { write(encoder.boxNumeric(UInt32(value))) }
     
     func encode(_ value: UInt8) throws { write(encoder.box(value)) }
     
-    func encode(_ value: UInt16) throws { write(encoder.box(value)) }
+    func encode(_ value: UInt16) throws { write(encoder.boxNumeric(value)) }
     
-    func encode(_ value: UInt32) throws { write(encoder.box(value)) }
+    func encode(_ value: UInt32) throws { write(encoder.boxNumeric(value)) }
     
-    func encode(_ value: UInt64) throws { write(encoder.box(value)) }
+    func encode(_ value: UInt64) throws { write(encoder.boxNumeric(value)) }
     
     func encode <T: Encodable> (_ value: T) throws { write(try encoder.boxEncodable(value)) }
     
@@ -452,7 +498,7 @@ final class TLVSingleValueEncodingContainer: SingleValueEncodingContainer {
 
 // MARK: - UnkeyedEncodingContainer
 
-final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
+internal final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
     
     // MARK: - Properties
     
@@ -488,29 +534,29 @@ final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
     
     func encode(_ value: String) throws { append(encoder.box(value)) }
     
-    func encode(_ value: Double) throws { append(encoder.box(value)) }
+    func encode(_ value: Double) throws { append(encoder.boxNumeric(value.bitPattern)) }
     
-    func encode(_ value: Float) throws { append(encoder.box(value)) }
+    func encode(_ value: Float) throws { append(encoder.boxNumeric(value.bitPattern)) }
     
-    func encode(_ value: Int) throws { append(encoder.box(Int32(value))) }
+    func encode(_ value: Int) throws { append(encoder.boxNumeric(Int32(value))) }
     
     func encode(_ value: Int8) throws { append(encoder.box(value)) }
     
-    func encode(_ value: Int16) throws { append(encoder.box(value)) }
+    func encode(_ value: Int16) throws { append(encoder.boxNumeric(value)) }
     
-    func encode(_ value: Int32) throws { append(encoder.box(value)) }
+    func encode(_ value: Int32) throws { append(encoder.boxNumeric(value)) }
     
-    func encode(_ value: Int64) throws { append(encoder.box(value)) }
+    func encode(_ value: Int64) throws { append(encoder.boxNumeric(value)) }
     
-    func encode(_ value: UInt) throws { append(encoder.box(UInt32(value))) }
+    func encode(_ value: UInt) throws { append(encoder.boxNumeric(UInt32(value))) }
     
     func encode(_ value: UInt8) throws { append(encoder.box(value)) }
     
-    func encode(_ value: UInt16) throws { append(encoder.box(value)) }
+    func encode(_ value: UInt16) throws { append(encoder.boxNumeric(value)) }
     
-    func encode(_ value: UInt32) throws { append(encoder.box(value)) }
+    func encode(_ value: UInt32) throws { append(encoder.boxNumeric(value)) }
     
-    func encode(_ value: UInt64) throws { append(encoder.box(value)) }
+    func encode(_ value: UInt64) throws { append(encoder.boxNumeric(value)) }
     
     func encode <T: Encodable> (_ value: T) throws { append(try encoder.boxEncodable(value)) }
     
@@ -543,16 +589,13 @@ final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
 private extension TLVEncodable {
     
     var copyingBytes: Data {
-        
-        var copy = self
-        return withUnsafePointer(to: &copy, { Data(bytes: $0, count: MemoryLayout<Self>.size) })
+        return withUnsafePointer(to: self, { Data(bytes: $0, count: MemoryLayout<Self>.size) })
     }
 }
 
 extension UInt8: TLVEncodable {
     
     public var tlvData: Data {
-        
         return copyingBytes
     }
 }
@@ -560,7 +603,6 @@ extension UInt8: TLVEncodable {
 extension UInt16: TLVEncodable {
     
     public var tlvData: Data {
-        
         return copyingBytes
     }
 }
@@ -568,7 +610,6 @@ extension UInt16: TLVEncodable {
 extension UInt32: TLVEncodable {
     
     public var tlvData: Data {
-        
         return copyingBytes
     }
 }
@@ -576,7 +617,6 @@ extension UInt32: TLVEncodable {
 extension UInt64: TLVEncodable {
     
     public var tlvData: Data {
-        
         return copyingBytes
     }
 }
@@ -584,7 +624,6 @@ extension UInt64: TLVEncodable {
 extension Int8: TLVEncodable {
     
     public var tlvData: Data {
-        
         return copyingBytes
     }
 }
@@ -592,7 +631,6 @@ extension Int8: TLVEncodable {
 extension Int16: TLVEncodable {
     
     public var tlvData: Data {
-        
         return copyingBytes
     }
 }
@@ -600,7 +638,6 @@ extension Int16: TLVEncodable {
 extension Int32: TLVEncodable {
     
     public var tlvData: Data {
-        
         return copyingBytes
     }
 }
@@ -608,7 +645,6 @@ extension Int32: TLVEncodable {
 extension Int64: TLVEncodable {
     
     public var tlvData: Data {
-        
         return copyingBytes
     }
 }
@@ -616,23 +652,20 @@ extension Int64: TLVEncodable {
 extension Float: TLVEncodable {
     
     public var tlvData: Data {
-        
-        return copyingBytes
+        return bitPattern.copyingBytes
     }
 }
 
 extension Double: TLVEncodable {
     
     public var tlvData: Data {
-        
-        return copyingBytes
+        return bitPattern.copyingBytes
     }
 }
 
 extension Bool: TLVEncodable {
     
     public var tlvData: Data {
-        
         return UInt8(self ? 1 : 0).copyingBytes
     }
 }
@@ -640,7 +673,6 @@ extension Bool: TLVEncodable {
 extension String: TLVEncodable {
     
     public var tlvData: Data {
-        
         return Data(self.utf8)
     }
 }
