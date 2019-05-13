@@ -148,7 +148,7 @@ internal extension TLVEncoder.Encoder {
             return TLVTypeCode(rawValue: UInt8(intValue))
             
         } else if MemoryLayout<Key>.size == MemoryLayout<UInt8>.size,
-            Mirror(reflecting: Key.self).displayStyle == .enum {
+            Mirror(reflecting: key).displayStyle == .enum {
             
             return TLVTypeCode(rawValue: unsafeBitCast(key, to: UInt8.self))
             
