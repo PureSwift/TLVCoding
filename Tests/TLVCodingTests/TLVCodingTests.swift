@@ -21,7 +21,8 @@ final class TLVCodingTests: XCTestCase {
         
         func test <T: Codable & Equatable> (_ value: T, _ data: Data) {
             
-            let encoder = TLVEncoder()
+            var encoder = TLVEncoder()
+            encoder.log = { print("Encoder:", $0) }
             do {
                 let encodedData = try encoder.encode(value)
                 XCTAssertEqual(encodedData, data, "Invalid data \(Array(encodedData))")
@@ -30,7 +31,8 @@ final class TLVCodingTests: XCTestCase {
                 XCTFail("Could not encode \(value)")
             }
             
-            let decoder = TLVDecoder()
+            var decoder = TLVDecoder()
+            decoder.log = { print("Decoder:", $0) }
             do {
                 let decodedValue = try decoder.decode(T.self, from: data)
                 XCTAssertEqual(decodedValue, value)
