@@ -66,6 +66,33 @@ final class TLVCodingTests: XCTestCase {
             uint32: 3000,
             uint64: 30_000),
              Data([0, 1, 1, 1, 4, 246, 255, 255, 255, 2, 4, 10, 0, 0, 0, 3, 4, 146, 203, 143, 63, 4, 8, 114, 138, 142, 228, 242, 255, 37, 64, 5, 1, 127, 6, 2, 56, 255, 7, 4, 48, 248, 255, 255, 8, 8, 224, 177, 255, 255, 255, 255, 255, 255, 9, 1, 255, 10, 2, 44, 1, 11, 4, 184, 11, 0, 0, 12, 8, 48, 117, 0, 0, 0, 0, 0, 0]))
+        
+        test(
+            Profile(
+                person: Person(
+                    gender: .male,
+                    name: "Coleman"
+            ), friends: [
+                Person(
+                    gender: .female,
+                    name: "Gina"
+                ),
+                Person(
+                    gender: .female,
+                    name: "Jossy"
+                ),Person(
+                    gender: .male,
+                    name: "Jorge"
+                )
+                ]
+               //userInfo: [
+               // 1: "One",
+               // 2: "Two",
+               // 3: "🏎"
+               // ]
+            ),
+            Data([0, 12, 0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110, 1, 29, 0, 1, 1, 1, 4, 71, 105, 110, 97, 0, 1, 1, 1, 5, 74, 111, 115, 115, 121, 0, 1, 0, 1, 5, 74, 111, 114, 103, 101])
+        )
     }
     
     func testCodingKeys() {
@@ -145,7 +172,7 @@ public struct Profile: Codable, Equatable, Hashable {
     
     public var person: Person
     public var friends: [Person]
-    public var userInfo: [UInt: String]
+    //public var userInfo: [UInt: String]
 }
 
 public struct Numeric: Codable, Equatable, Hashable {
