@@ -8,15 +8,47 @@
 
 import Foundation
 
+/// TLV8 Decoder
 public struct TLVDecoder {
     
+    // MARK: - Properties
     
-}
-
-
-internal extension TLVDecoder {
+    /// Any contextual information set by the user for encoding.
+    public var userInfo = [CodingUserInfoKey : Any]()
     
-    static func decode(_ data: Data) throws -> [TLVItem] {
+    /// Logger handler
+    public var log: ((String) -> ())?
+    
+    /// Format for numeric values.
+    public var numericFormat: TLVNumericFormat = .littleEndian
+    
+    // MARK: - Initialization
+    
+    public init() { }
+    
+    // MARK: - Methods
+    
+    public func decode <T: Decodable> (_ type: T.Type, from data: Data) throws -> T {
+        
+        let items = try decode(data)
+        
+        let options = Decoder.Options(numericFormat: numericFormat)
+        
+        let decoder = Decoder(referencing: .items(items),
+                              userInfo: userInfo,
+                              log: log,
+                              options: options)
+        
+        // decode from container
+        return try T.init(from: decoder)
+    }
+    
+    public func decode(_ data: Data) throws -> [TLVItem] {
+        
+        return try TLVDecoder.decode(data, codingPath: [])
+    }
+    
+    internal static func decode(_ data: Data, codingPath: [CodingKey]) throws -> [TLVItem] {
         
         var offset = 0
         var items = [TLVItem]()
@@ -24,8 +56,10 @@ internal extension TLVDecoder {
         while offset < data.count {
             
             // validate size
-            guard data.count >= 3
-                else { throw DecodingError.invalidSize(data.count, context: DecodingContext(offset: offset)) }
+            guard data.count >= 3 else {
+                //throw DecodingError.invalidSize(data.count, context: DecodingContext(offset: offset))
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Not enough bytes (\(data.count)) to continue parsing at offset \(offset)"))
+            }
             
             // get type
             let typeByte = data[offset] // 0
@@ -50,20 +84,769 @@ internal extension TLVDecoder {
     }
 }
 
-// MARK: - Supporting Types
-
-public extension TLVDecoder {
+internal extension TLVDecoder {
     
-    struct DecodingContext {
+    final class Decoder: Swift.Decoder {
         
-        public let offset: Int
+        /// The path of coding keys taken to get to this point in decoding.
+        fileprivate(set) var codingPath: [CodingKey]
+        
+        /// Any contextual information set by the user for decoding.
+        let userInfo: [CodingUserInfoKey : Any]
+        
+        fileprivate var stack: Stack
+        
+        /// Logger
+        let log: ((String) -> ())?
+        
+        let options: Options
+        
+        // MARK: - Initialization
+        
+        fileprivate init(referencing container: Stack.Container,
+                         at codingPath: [CodingKey] = [],
+                         userInfo: [CodingUserInfoKey : Any],
+                         log: ((String) -> ())?,
+                         options: Options) {
+            
+            self.stack = Stack(container)
+            self.codingPath = codingPath
+            self.userInfo = userInfo
+            self.log = log
+            self.options = options
+        }
+        
+        // MARK: - Methods
+        
+        func container <Key: CodingKey> (keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> {
+            
+            log?("Requested container keyed by \(type) for path \"\(codingPath.path)\"")
+            
+            let container = self.stack.top
+            
+            switch container {
+                
+            case let .items(items):
+                
+                let keyedContainer = TLVKeyedDecodingContainer<Key>(referencing: self, wrapping: items)
+                
+                return KeyedDecodingContainer(keyedContainer)
+                
+            case let .item(item):
+                
+                let items = try decode(item.value, codingPath: codingPath)
+                
+                let keyedContainer = TLVKeyedDecodingContainer<Key>(referencing: self, wrapping: items)
+                
+                return KeyedDecodingContainer(keyedContainer)
+            }
+        }
+        
+        func unkeyedContainer() throws -> UnkeyedDecodingContainer {
+            
+            log?("Requested unkeyed container for path \"\(codingPath.path)\"")
+            
+            let container = self.stack.top
+            
+            switch container {
+                
+            case let .items(items):
+                
+                return TLVUnkeyedDecodingContainer(referencing: self, wrapping: items)
+                
+            case let .item(item):
+                
+                // forceably cast to array
+                guard let items = try? TLVDecoder.decode(item.value, codingPath: codingPath) else {
+                    
+                    throw DecodingError.typeMismatch(UnkeyedDecodingContainer.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Cannot get unkeyed decoding container, invalid top container \(container)."))
+                }
+                
+                // replace stack
+                self.stack.pop()
+                self.stack.push(.items(items))
+                
+                return TLVUnkeyedDecodingContainer(referencing: self, wrapping: items)
+            }
+        }
+        
+        func singleValueContainer() throws -> SingleValueDecodingContainer {
+            
+            log?("Requested single value container for path \"\(codingPath.path)\"")
+            
+            let container = self.stack.top
+            
+            guard case let .item(item) = container else {
+                
+                throw DecodingError.typeMismatch(SingleValueDecodingContainer.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Cannot get single value decoding container, invalid top container \(container)."))
+            }
+            
+            return TLVSingleValueDecodingContainer(referencing: self, wrapping: item)
+        }
+    }
+}
+
+internal extension TLVDecoder.Decoder {
+    
+    struct Options {
+        
+        let numericFormat: TLVNumericFormat
+    }
+}
+
+// MARK: - Unboxing Values
+
+internal extension TLVDecoder.Decoder {
+    
+    func unbox <T: TLVDecodable> (_ data: Data, as type: T.Type) throws -> T {
+        
+        guard let value = T.init(tlvData: data) else {
+            
+            throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Could not parse \(type) from \(data)"))
+        }
+        
+        return value
     }
     
-    enum DecodingError: Swift.Error {
+    /// Attempt to decode native value to expected type.
+    func unboxDecodable <T: Decodable> (_ item: TLVItem, as type: T.Type) throws -> T {
         
-        case invalidSize(Int, context: DecodingContext)
-        case invalidType(UInt8, context: DecodingContext)
-        case invalidValue(Data, context: DecodingContext)
-        case decodableMismatch([TLVDecodable])
+        // override for native types
+        if type == Data.self {
+            
+            return item.value as! T // In this case T is Data
+            
+        } else {
+            
+            // push container to stack and decode using Decodable implementation
+            stack.push(.item(item))
+            let decoded = try T(from: self)
+            stack.pop()
+            
+            return decoded
+        }
+    }
+}
+
+// MARK: - Stack
+
+private extension TLVDecoder {
+    
+    struct Stack {
+        
+        private(set) var containers = [Container]()
+        
+        fileprivate init(_ container: Container) {
+            
+            self.containers = [container]
+        }
+        
+        var top: Container {
+            
+            guard let container = containers.last
+                else { fatalError("Empty container stack.") }
+            
+            return container
+        }
+        
+        mutating func push(_ container: Container) {
+            
+            containers.append(container)
+        }
+        
+        @discardableResult
+        mutating func pop() -> Container {
+            
+            guard let container = containers.popLast()
+                else { fatalError("Empty container stack.") }
+            
+            return container
+        }
+    }
+}
+
+fileprivate extension TLVDecoder.Stack {
+    
+    enum Container {
+        
+        case items([TLVItem])
+        case item(TLVItem)
+    }
+}
+
+
+// MARK: - KeyedDecodingContainer
+
+internal struct TLVKeyedDecodingContainer <K : CodingKey >: KeyedDecodingContainerProtocol {
+    
+    typealias Key = K
+    
+    // MARK: Properties
+    
+    /// A reference to the encoder we're reading from.
+    private let decoder: TLVDecoder.Decoder
+    
+    /// A reference to the container we're reading from.
+    private let container: [TLVItem]
+    
+    /// The path of coding keys taken to get to this point in decoding.
+    public let codingPath: [CodingKey]
+    
+    /// All the keys the Decoder has for this container.
+    public let allKeys: [Key]
+    
+    // MARK: Initialization
+    
+    /// Initializes `self` by referencing the given decoder and container.
+    fileprivate init(referencing decoder: TLVDecoder.Decoder, wrapping container: [TLVItem]) {
+        
+        self.decoder = decoder
+        self.container = container
+        self.codingPath = decoder.codingPath
+        self.allKeys = container.compactMap { Key(intValue: Int($0.type.rawValue)) }
+    }
+    
+    // MARK: KeyedDecodingContainerProtocol
+    
+    func contains(_ key: Key) -> Bool {
+        
+        // log
+        self.decoder.log?("Check whether key \"\(key.stringValue)\" exists")
+        
+        // check schema / model contains property
+        // FIXME: Remove unneccesary check as optimization
+        guard allKeys.contains(where: { $0.stringValue == key.stringValue })
+            else { return false }
+        
+        // return whether value exists for key
+        guard let typeCode = TLVTypeCode(codingKey: key)
+            else { return false }
+        
+        return container.contains { $0.type == typeCode }
+    }
+    
+    func decodeNil(forKey key: Key) throws -> Bool {
+        
+        // set coding key context
+        self.decoder.codingPath.append(key)
+        defer { self.decoder.codingPath.removeLast() }
+        
+        return try self.value(for: key) == nil
+    }
+    
+    func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
+        
+        return try _decode(type, forKey: key)
+    }
+    
+    func decode(_ type: Int.Type, forKey key: Key) throws -> Int {
+        
+        let value = try _decode(Int32.self, forKey: key)
+        
+        return Int(value)
+    }
+    
+    func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
+        
+        return try _decode(type, forKey: key)
+    }
+    
+    func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
+        
+        return try _decode(type, forKey: key)
+    }
+    
+    func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
+        
+        return try _decode(type, forKey: key)
+    }
+    
+    func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
+        
+        return try _decode(type, forKey: key)
+    }
+    
+    func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
+        
+        let value = try _decode(UInt32.self, forKey: key)
+        
+        return UInt(value)
+    }
+    
+    func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
+        
+        return try _decode(type, forKey: key)
+    }
+    
+    func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
+        
+        return try _decode(type, forKey: key)
+    }
+    
+    func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
+        
+        return try _decode(type, forKey: key)
+    }
+    
+    func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
+        
+        return try _decode(type, forKey: key)
+    }
+    
+    func decode(_ type: Float.Type, forKey key: Key) throws -> Float {
+        
+        //return try _decode(type, forKey: key)
+        fatalError()
+    }
+    
+    func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
+        
+        //return try _decode(type, forKey: key)
+        fatalError()
+    }
+    
+    func decode(_ type: String.Type, forKey key: Key) throws -> String {
+        
+        return try _decode(type, forKey: key)
+    }
+    
+    func decode <T: Decodable> (_ type: T.Type, forKey key: Key) throws -> T {
+        
+        self.decoder.codingPath.append(key)
+        defer { self.decoder.codingPath.removeLast() }
+        
+        guard let item = try self.value(for: key) else {
+            
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: self.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+        
+        let value = try self.decoder.unboxDecodable(item, as: type)
+        
+        return value
+    }
+    
+    func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: Key) throws -> KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
+        
+        fatalError()
+    }
+    
+    func nestedUnkeyedContainer(forKey key: Key) throws -> UnkeyedDecodingContainer {
+        
+        fatalError()
+    }
+    
+    func superDecoder() throws -> Decoder {
+        
+        fatalError()
+    }
+    
+    func superDecoder(forKey key: Key) throws -> Decoder {
+        
+        fatalError()
+    }
+    
+    // MARK: Private Methods
+    
+    /// Decode native value type from TLV data.
+    private func _decode <T: TLVDecodable> (_ type: T.Type, forKey key: Key) throws -> T {
+        
+        self.decoder.codingPath.append(key)
+        defer { self.decoder.codingPath.removeLast() }
+        
+        guard let item = try self.value(for: key) else {
+            
+            throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: self.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
+        }
+        
+        let data = item.value
+        let value = try decoder.unbox(data, as: type)
+        return value
+    }
+    
+    /// Access actual value
+    private func value(for key: Key) throws -> TLVItem? {
+        
+        // log
+        decoder.log?("Will read value for key \(key.stringValue) at path \"\(decoder.codingPath.path)\"")
+        
+        // get value
+        return container.first { $0.type == TLVTypeCode(codingKey: key) }
+    }
+}
+
+// MARK: - SingleValueDecodingContainer
+
+internal struct TLVSingleValueDecodingContainer: SingleValueDecodingContainer {
+    
+    // MARK: Properties
+    
+    /// A reference to the decoder we're reading from.
+    let decoder: TLVDecoder.Decoder
+    
+    /// A reference to the container we're reading from.
+    let container: TLVItem
+    
+    /// The path of coding keys taken to get to this point in decoding.
+    let codingPath: [CodingKey]
+    
+    // MARK: Initialization
+    
+    /// Initializes `self` by referencing the given decoder and container.
+    init(referencing decoder: TLVDecoder.Decoder, wrapping container: TLVItem) {
+        
+        self.decoder = decoder
+        self.container = container
+        self.codingPath = decoder.codingPath
+    }
+    
+    // MARK: SingleValueDecodingContainer
+    
+    func decodeNil() -> Bool {
+        
+        return container.value.isEmpty
+    }
+    
+    func decode(_ type: Bool.Type) throws -> Bool {
+        
+        return try self.decoder.unbox(container.value, as: type)
+    }
+    
+    func decode(_ type: Int.Type) throws -> Int {
+        
+        let value = try self.decoder.unbox(container.value, as: Int32.self)
+        
+        return Int(value)
+    }
+    
+    func decode(_ type: Int8.Type) throws -> Int8 {
+        
+        return try self.decoder.unbox(container.value, as: type)
+    }
+    
+    func decode(_ type: Int16.Type) throws -> Int16 {
+        
+        return try self.decoder.unbox(container.value, as: type)
+    }
+    
+    func decode(_ type: Int32.Type) throws -> Int32 {
+        
+        return try self.decoder.unbox(container.value, as: type)
+    }
+    
+    func decode(_ type: Int64.Type) throws -> Int64 {
+        
+        return try self.decoder.unbox(container.value, as: type)
+    }
+    
+    func decode(_ type: UInt.Type) throws -> UInt {
+        
+        let value = try self.decoder.unbox(container.value, as: UInt32.self)
+        
+        return UInt(value)
+    }
+    
+    func decode(_ type: UInt8.Type) throws -> UInt8 {
+        
+        return try self.decoder.unbox(container.value, as: type)
+    }
+    
+    func decode(_ type: UInt16.Type) throws -> UInt16 {
+        
+        return try self.decoder.unbox(container.value, as: type)
+    }
+    
+    func decode(_ type: UInt32.Type) throws -> UInt32 {
+        
+        return try self.decoder.unbox(container.value, as: type)
+    }
+    
+    func decode(_ type: UInt64.Type) throws -> UInt64 {
+        
+        return try self.decoder.unbox(container.value, as: type)
+    }
+    
+    func decode(_ type: Float.Type) throws -> Float {
+        
+        fatalError()
+    }
+    
+    func decode(_ type: Double.Type) throws -> Double {
+        
+        fatalError()
+    }
+    
+    func decode(_ type: String.Type) throws -> String {
+        
+        return try self.decoder.unbox(container.value, as: type)
+    }
+    
+    func decode <T : Decodable> (_ type: T.Type) throws -> T {
+        
+        return try self.decoder.unboxDecodable(container, as: type)
+    }
+}
+
+// MARK: UnkeyedDecodingContainer
+
+internal struct TLVUnkeyedDecodingContainer: UnkeyedDecodingContainer {
+    
+    // MARK: Properties
+    
+    /// A reference to the encoder we're reading from.
+    let decoder: TLVDecoder.Decoder
+    
+    /// A reference to the container we're reading from.
+    let container: [TLVItem]
+    
+    /// The path of coding keys taken to get to this point in decoding.
+    let codingPath: [CodingKey]
+    
+    private(set) var currentIndex: Int = 0
+    
+    // MARK: Initialization
+    
+    /// Initializes `self` by referencing the given decoder and container.
+    init(referencing decoder: TLVDecoder.Decoder, wrapping container: [TLVItem]) {
+        
+        self.decoder = decoder
+        self.container = container
+        self.codingPath = decoder.codingPath
+    }
+    
+    // MARK: UnkeyedDecodingContainer
+    
+    var count: Int? {
+        return _count
+    }
+    
+    var _count: Int {
+        return container.count
+    }
+    
+    var isAtEnd: Bool {
+        return currentIndex >= _count
+    }
+    
+    mutating func decodeNil() throws -> Bool {
+        
+        try assertNotEnd()
+        
+        // never optional, decode
+        return false
+    }
+    
+    mutating func decode(_ type: Bool.Type) throws -> Bool { fatalError("stub") }
+    mutating func decode(_ type: Int.Type) throws -> Int { fatalError("stub") }
+    mutating func decode(_ type: Int8.Type) throws -> Int8 { fatalError("stub") }
+    mutating func decode(_ type: Int16.Type) throws -> Int16 { fatalError("stub") }
+    mutating func decode(_ type: Int32.Type) throws -> Int32 { fatalError("stub") }
+    mutating func decode(_ type: Int64.Type) throws -> Int64 { fatalError("stub") }
+    mutating func decode(_ type: UInt.Type) throws -> UInt { fatalError("stub") }
+    mutating func decode(_ type: UInt8.Type) throws -> UInt8 { fatalError("stub") }
+    mutating func decode(_ type: UInt16.Type) throws -> UInt16 { fatalError("stub") }
+    mutating func decode(_ type: UInt32.Type) throws -> UInt32 { fatalError("stub") }
+    mutating func decode(_ type: UInt64.Type) throws -> UInt64 { fatalError("stub") }
+    mutating func decode(_ type: Float.Type) throws -> Float { fatalError("stub") }
+    mutating func decode(_ type: Double.Type) throws -> Double { fatalError("stub") }
+    mutating func decode(_ type: String.Type) throws -> String { fatalError("stub") }
+    
+    mutating func decode <T : Decodable> (_ type: T.Type) throws -> T {
+        
+        try assertNotEnd()
+        
+        self.decoder.codingPath.append(Index(intValue: self.currentIndex))
+        defer { self.decoder.codingPath.removeLast() }
+        
+        let item = self.container[self.currentIndex]
+        
+        let decoded = try self.decoder.unboxDecodable(item, as: type)
+        
+        self.currentIndex += 1
+        
+        return decoded
+    }
+    
+    mutating func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type) throws -> KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
+        
+        throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Cannot decode \(type)"))
+    }
+    
+    mutating func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
+        
+        throw DecodingError.typeMismatch([Any].self, DecodingError.Context(codingPath: codingPath, debugDescription: "Cannot decode unkeyed container."))
+    }
+    
+    mutating func superDecoder() throws -> Decoder {
+        
+        // set coding key context
+        self.decoder.codingPath.append(Index(intValue: currentIndex))
+        defer { self.decoder.codingPath.removeLast() }
+        
+        // log
+        self.decoder.log?("Requested super decoder for path \"\(self.decoder.codingPath.path)\"")
+        
+        // check for end of array
+        try assertNotEnd()
+        
+        // get item
+        let item = container[currentIndex]
+        
+        // increment counter
+        self.currentIndex += 1
+        
+        // create new decoder
+        let decoder = TLVDecoder.Decoder(referencing: .item(item),
+                                         at: self.decoder.codingPath,
+                                         userInfo: self.decoder.userInfo,
+                                         log: self.decoder.log,
+                                         options: self.decoder.options)
+        
+        return decoder
+    }
+    
+    // MARK: Private Methods
+    
+    @inline(__always)
+    private func assertNotEnd() throws {
+        
+        guard isAtEnd == false else {
+            
+            throw DecodingError.valueNotFound(Any?.self, DecodingError.Context(codingPath: self.decoder.codingPath + [Index(intValue: self.currentIndex)], debugDescription: "Unkeyed container is at end."))
+        }
+    }
+}
+
+fileprivate extension TLVUnkeyedDecodingContainer {
+    
+    struct Index: CodingKey {
+        
+        public let index: Int
+        
+        public init(intValue: Int) {
+            
+            self.index = intValue
+        }
+        
+        init?(stringValue: String) {
+            
+            return nil
+        }
+        
+        public var intValue: Int? {
+            return index
+        }
+        
+        public var stringValue: String {
+            return "\(index)"
+        }
+    }
+}
+
+// MARK: - Decodable Types
+
+extension String: TLVDecodable {
+    
+    public init?(tlvData data: Data) {
+        
+        self.init(data: data, encoding: .utf8)
+    }
+}
+
+extension Bool: TLVDecodable {
+    
+    public init?(tlvData data: Data) {
+        
+        guard data.count == MemoryLayout<UInt8>.size
+            else { return nil }
+        
+        self = data[0] != 0
+    }
+}
+
+extension UInt8: TLVDecodable {
+    
+    public init?(tlvData data: Data) {
+        
+        guard data.count == MemoryLayout<UInt8>.size
+            else { return nil }
+        
+        self = data[0]
+    }
+}
+
+extension UInt16: TLVDecodable {
+    
+    public init?(tlvData data: Data) {
+        
+        guard data.count == MemoryLayout<UInt16>.size
+            else { return nil }
+        
+        self.init(bytes: (data[0], data[1]))
+    }
+}
+
+extension UInt32: TLVDecodable {
+    
+    public init?(tlvData data: Data) {
+        
+        guard data.count == MemoryLayout<UInt32>.size
+            else { return nil }
+        
+        self.init(bytes: (data[0], data[1], data[2], data[3]))
+    }
+}
+
+extension UInt64: TLVDecodable {
+    
+    public init?(tlvData data: Data) {
+        
+        guard data.count == MemoryLayout<UInt64>.size
+            else { return nil }
+        
+        self.init(bytes: (data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]))
+    }
+}
+
+extension Int8: TLVDecodable {
+    
+    public init?(tlvData data: Data) {
+        
+        guard data.count == MemoryLayout<Int8>.size
+            else { return nil }
+        
+        self = Int8(bitPattern: data[0])
+    }
+}
+
+extension Int16: TLVDecodable {
+    
+    public init?(tlvData data: Data) {
+        
+        guard data.count == MemoryLayout<Int16>.size
+            else { return nil }
+        
+        self.init(bytes: (data[0], data[1]))
+    }
+}
+
+extension Int32: TLVDecodable {
+    
+    public init?(tlvData data: Data) {
+        
+        guard data.count == MemoryLayout<Int32>.size
+            else { return nil }
+        
+        self.init(bytes: (data[0], data[1], data[2], data[3]))
+    }
+}
+
+extension Int64: TLVDecodable {
+    
+    public init?(tlvData data: Data) {
+        
+        guard data.count == MemoryLayout<Int32>.size
+            else { return nil }
+        
+        self.init(bytes: (data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]))
     }
 }
