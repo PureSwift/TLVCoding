@@ -127,6 +127,14 @@ final class TLVCodingTests: XCTestCase {
                             74, 111, 114, 103, 101
                 ])
         )
+        
+        test(
+            Binary(
+                data: Data([0x01, 0x02, 0x03, 0x04]),
+                value: .one
+            ),
+            Data([0, 4, 1, 2, 3, 4, 1, 2, 1, 0])
+        )
     }
     
     func testCodingKeys() {
@@ -224,4 +232,34 @@ public struct Numeric: Codable, Equatable, Hashable {
     public var uint16: UInt16
     public var uint32: UInt32
     public var uint64: UInt64
+}
+
+public struct Binary: Codable, Equatable, Hashable {
+    
+    public var data: Data
+    public var value: Codable
+}
+
+public extension Binary {
+    
+    enum Codable: UInt16, Equatable, Hashable, Swift.Codable, TLVCodable {
+        
+        case zero
+        case one
+        case two
+        case three
+        
+        public init?(tlvData: Data) {
+            
+            guard let rawValue = UInt16(tlvData: tlvData)?.littleEndian
+                else { return nil }
+            
+            self.init(rawValue: rawValue)
+        }
+        
+        public var tlvData: Data {
+            
+            return rawValue.littleEndian.tlvData
+        }
+    }
 }
