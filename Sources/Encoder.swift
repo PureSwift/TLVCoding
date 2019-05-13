@@ -583,7 +583,7 @@ internal final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
         let item = TLVItem(type: index, value: data)
         
         // write
-        self.container.data += item.data
+        self.container.data.append(item.data)
         self.count += 1
     }
 }
