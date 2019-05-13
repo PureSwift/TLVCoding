@@ -183,7 +183,7 @@ public struct ProvisioningState: Codable, Equatable {
 
 internal extension ProvisioningState {
     
-    enum CodingKeys: UInt8, TLVCodingKey {
+    enum CodingKeys: UInt8, TLVCodingKey, CaseIterable {
         
         case state = 0x01
         case result = 0x02
@@ -201,8 +201,12 @@ extension ProvisioningState.CodingKeys {
 }
 
 #if swift(>=4.2)
-extension ProvisioningState: CaseIterable { }
 #else
+protocol CaseIterable: Hashable {
+    
+    static var allCases: Set<Self> { get }
+}
+
 extension ProvisioningState.CodingKeys {
     
     static let allCases: Set<ProvisioningState.CodingKeys> = [.state, .result]
