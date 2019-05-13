@@ -13,37 +13,22 @@ import XCTest
 final class TLVCodingTests: XCTestCase {
     
     static var allTests = [
-        ("testEncode", testEncode),
+        ("testCodable", testCodable),
         ("testCodingKeys", testCodingKeys)
     ]
     
-    func testEncode() {
+    func testCodable() {
         
-        func encode <T: Encodable> (_ value: T, _ data: Data) {
+        func test <T: Codable & Equatable> (_ value: T, _ data: Data) {
             
             let encoder = TLVEncoder()
             do {
                 let encodedData = try encoder.encode(value)
-                XCTAssertEqual(encodedData, data)
+                XCTAssertEqual(encodedData, data, "Invalid data \(Array(encodedData))")
             } catch {
                 dump(error)
                 XCTFail("Could not encode \(value)")
             }
-        }
-        
-        encode(Person(gender: .male, name: "Coleman"),
-               Data([0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110]))
-        
-        encode(ProvisioningState(state: .idle, result: .notAvailible),
-               Data([0x01, 0x01, 0x00, 0x02, 0x01, 0x00]))
-        
-        encode(ProvisioningState(state: .provisioning, result: .notAvailible),
-               Data([0x01, 0x01, 0x01, 0x02, 0x01, 0x00]))
-    }
-    
-    func testDecode() {
-        
-        func decode <T: Codable & Equatable> (_ value: T, _ data: Data) {
             
             let decoder = TLVDecoder()
             do {
@@ -55,14 +40,30 @@ final class TLVCodingTests: XCTestCase {
             }
         }
         
-        decode(Person(gender: .male, name: "Coleman"),
-               Data([0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110]))
+        test(Person(gender: .male, name: "Coleman"),
+            Data([0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110]))
         
-        decode(ProvisioningState(state: .idle, result: .notAvailible),
-               Data([0x01, 0x01, 0x00, 0x02, 0x01, 0x00]))
+        test(ProvisioningState(state: .idle, result: .notAvailible),
+            Data([0x01, 0x01, 0x00, 0x02, 0x01, 0x00]))
         
-        decode(ProvisioningState(state: .provisioning, result: .notAvailible),
-               Data([0x01, 0x01, 0x01, 0x02, 0x01, 0x00]))
+        test(ProvisioningState(state: .provisioning, result: .notAvailible),
+            Data([0x01, 0x01, 0x01, 0x02, 0x01, 0x00]))
+        
+        test(Numeric(
+            boolean: true,
+            int: -10,
+            uint: 10,
+            float: 1.1234,
+            double: 10.9999,
+            int8: .max,
+            int16: -200,
+            int32: -2000,
+            int64: -20_000,
+            uint8: .max,
+            uint16: 300,
+            uint32: 3000,
+            uint64: 30_000),
+             Data([0, 1, 1, 1, 4, 246, 255, 255, 255, 2, 4, 10, 0, 0, 0, 3, 4, 146, 203, 143, 63, 4, 8, 114, 138, 142, 228, 242, 255, 37, 64, 5, 1, 127, 6, 2, 56, 255, 7, 4, 48, 248, 255, 255, 8, 8, 224, 177, 255, 255, 255, 255, 255, 255, 9, 1, 255, 10, 2, 44, 1, 11, 4, 184, 11, 0, 0, 12, 8, 48, 117, 0, 0, 0, 0, 0, 0]))
     }
     
     func testCodingKeys() {
@@ -79,29 +80,21 @@ final class TLVCodingTests: XCTestCase {
 
 // MARK: - Supporting Types
 
+public struct Person: Codable, Equatable, Hashable {
+    
+    public var gender: Gender
+    public var name: String
+}
+
 public enum Gender: UInt8, Codable {
     
     case male
     case female
 }
 
-public struct Person: Codable, Equatable, Hashable {
-    
-    public var gender: Gender
-    
-    public var name: String
-    
-    public init(gender: Gender, name: String) {
-        
-        self.gender = gender
-        self.name = name
-    }
-}
-
 public struct ProvisioningState: Codable, Equatable, Hashable {
     
     public var state: State
-    
     public var result: Result
 }
 
@@ -144,4 +137,28 @@ public extension ProvisioningState {
         case connectTimeout = 0x07
         case insufficientNetwork = 0x08
     }
+}
+
+public struct Profile: Codable, Equatable, Hashable {
+    
+    public var person: Person
+    public var friends: [Person]
+    public var userInfo: [UInt: String]
+}
+
+public struct Numeric: Codable, Equatable, Hashable {
+    
+    public var boolean: Bool
+    public var int: Int
+    public var uint: UInt
+    public var float: Float
+    public var double: Double
+    public var int8: Int8
+    public var int16: Int16
+    public var int32: Int32
+    public var int64: Int64
+    public var uint8: UInt8
+    public var uint16: UInt16
+    public var uint32: UInt32
+    public var uint64: UInt64
 }

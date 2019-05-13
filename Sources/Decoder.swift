@@ -395,14 +395,14 @@ internal struct TLVKeyedDecodingContainer <K : CodingKey >: KeyedDecodingContain
     
     func decode(_ type: Float.Type, forKey key: Key) throws -> Float {
         
-        //return try _decode(type, forKey: key)
-        fatalError()
+        let bitPattern = try _decode(UInt32.self, forKey: key)
+        return Float(bitPattern: bitPattern)
     }
     
     func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
         
-        //return try _decode(type, forKey: key)
-        fatalError()
+        let bitPattern = try _decode(UInt64.self, forKey: key)
+        return Double(bitPattern: bitPattern)
     }
     
     func decode(_ type: String.Type, forKey key: Key) throws -> String {
@@ -844,7 +844,7 @@ extension Int64: TLVDecodable {
     
     public init?(tlvData data: Data) {
         
-        guard data.count == MemoryLayout<Int32>.size
+        guard data.count == MemoryLayout<Int64>.size
             else { return nil }
         
         self.init(bytes: (data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]))
