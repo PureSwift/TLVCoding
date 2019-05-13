@@ -103,8 +103,8 @@ internal extension TLVEncoder {
             
             log?("Requested unkeyed container for path \"\(codingPath.path)\"")
             
-            let stackContainer = ItemContainer()
-            self.stack.push(.item(stackContainer))
+            let stackContainer = ItemsContainer()
+            self.stack.push(.items(stackContainer))
             
             return TLVUnkeyedEncodingContainer(referencing: self, wrapping: stackContainer)
         }
@@ -509,12 +509,12 @@ internal final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
     let codingPath: [CodingKey]
     
     /// A reference to the container we're writing to.
-    let container: TLVEncoder.Encoder.ItemContainer
+    let container: TLVEncoder.Encoder.ItemsContainer
     
     // MARK: - Initialization
     
     init(referencing encoder: TLVEncoder.Encoder,
-         wrapping container: TLVEncoder.Encoder.ItemContainer) {
+         wrapping container: TLVEncoder.Encoder.ItemsContainer) {
         
         self.encoder = encoder
         self.codingPath = encoder.codingPath
@@ -524,7 +524,9 @@ internal final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
     // MARK: - Methods
     
     /// The number of elements encoded into the container.
-    private(set) var count: Int = 0
+    var count: Int {
+        return container.items.count
+    }
     
     func encodeNil() throws {
         // do nothing
@@ -583,8 +585,7 @@ internal final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
         let item = TLVItem(type: index, value: data)
         
         // write
-        self.container.data.append(item.data)
-        self.count += 1
+        self.container.items.append(item)
     }
 }
 
