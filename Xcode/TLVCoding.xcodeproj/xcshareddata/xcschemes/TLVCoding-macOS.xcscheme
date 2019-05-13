@@ -34,7 +34,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "DD7502791C68FCFC006590AF"
-               BuildableName = "TLVCoding-macOS Tests.xctest"
+               BuildableName = "TLVCodingTests.xctest"
                BlueprintName = "TLVCoding-macOS Tests"
                ReferencedContainer = "container:TLVCoding.xcodeproj">
             </BuildableReference>
