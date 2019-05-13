@@ -1,4 +1,4 @@
-// swift-tools-version:5.0
+// swift-tools-version:4.2
 import PackageDescription
 
 let package = Package(name: "TLVCoding",
@@ -12,4 +12,4 @@ let package = Package(name: "TLVCoding",
                         .target(name: "TLVCoding", path: "./Sources"),
                         .testTarget(name: "TLVCodingTests", dependencies: ["TLVCoding"])
                         ],
-                      swiftLanguageVersions: [.v5])
+                      swiftLanguageVersions: [.v4_2])
