@@ -579,7 +579,11 @@ internal final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
     
     private func append(_ data: Data) {
         
-        self.container.data += data
+        let index = TLVTypeCode(rawValue: UInt8(count)) // current index
+        let item = TLVItem(type: index, value: data)
+        
+        // write
+        self.container.data += item.data
         self.count += 1
     }
 }
