@@ -77,7 +77,9 @@ final class TLVCodingTests: XCTestCase {
                         gender: .male,
                         name: "Coleman"
                     )
-                ]),
+                ],
+                userInfo: nil
+            ),
             Data([0, 12, 0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110,
                   1, 14, 0, 12, 0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110])
         )
@@ -99,18 +101,31 @@ final class TLVCodingTests: XCTestCase {
                     gender: .male,
                     name: "Jorge"
                 )
-                ]
-               //userInfo: [
-               // 1: "One",
-               // 2: "Two",
-               // 3: "🏎"
-               // ]
+                ],
+               userInfo: nil
             ),
-            Data([0, 12, 0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110,
+            Data([0, 12,
+                    0, 1,
+                        0,
+                    1, 7,
+                        67, 111, 108, 101, 109, 97, 110,
                   1, 35,
-                  0, 9, 0, 1, 1, 1, 4, 71, 105, 110, 97,
-                  1, 10, 0, 1, 1, 1, 5, 74, 111, 115, 115, 121,
-                  2, 10, 0, 1, 0, 1, 5, 74, 111, 114, 103, 101])
+                    0, 9,
+                        0, 1,
+                            1,
+                        1, 4,
+                            71, 105, 110, 97,
+                    1, 10,
+                        0, 1,
+                            1,
+                        1, 5,
+                            74, 111, 115, 115, 121,
+                    2, 10,
+                        0, 1,
+                            0,
+                        1, 5,
+                            74, 111, 114, 103, 101
+                ])
         )
     }
     
@@ -191,7 +206,7 @@ public struct Profile: Codable, Equatable, Hashable {
     
     public var person: Person
     public var friends: [Person]
-    //public var userInfo: [UInt: String]
+    public var userInfo: [UInt: String]?
 }
 
 public struct Numeric: Codable, Equatable, Hashable {
