@@ -25,7 +25,28 @@ public extension TLVCodingKey {
     }
     
     var intValue: Int? {
-        
         return Int(code.rawValue)
+    }
+}
+
+public extension TLVCodingKey where Self: RawRepresentable, RawValue == TLVTypeCode.RawValue {
+    
+    init?(code: TLVTypeCode) {
+        self.init(rawValue: code.rawValue)
+    }
+    
+    var code: TLVTypeCode {
+        return TLVTypeCode(rawValue: rawValue)
+    }
+}
+
+public extension TLVCodingKey where Self: CaseIterable, Self: RawRepresentable, RawValue == TLVTypeCode.RawValue {
+    
+    init?(stringValue: String) {
+        
+        guard let value = Self.allCases.first(where: { $0.stringValue == stringValue })
+            else { return nil }
+        
+        self = value
     }
 }
