@@ -14,19 +14,17 @@ final class TLVCodingTests: XCTestCase {
     
     static var allTests = [
         ("testEncode", testEncode),
-        ]
+        ("testCodingKeys", testCodingKeys)
+    ]
     
     func testEncode() {
         
         func encode <T: Encodable> (_ value: T, _ data: Data) {
             
             let encoder = TLVEncoder()
-            
             do {
-                
                 let encodedData = try encoder.encode(value)
                 XCTAssertEqual(encodedData, data)
-                
             } catch {
                 dump(error)
                 XCTFail("Could not encode \(value)")
@@ -40,6 +38,30 @@ final class TLVCodingTests: XCTestCase {
                Data([0x01, 0x01, 0x00, 0x02, 0x01, 0x00]))
         
         encode(ProvisioningState(state: .provisioning, result: .notAvailible),
+               Data([0x01, 0x01, 0x01, 0x02, 0x01, 0x00]))
+    }
+    
+    func testDecode() {
+        
+        func decode <T: Codable & Equatable> (_ value: T, _ data: Data) {
+            
+            let decoder = TLVDecoder()
+            do {
+                let decodedValue = try decoder.decode(T.self, from: data)
+                XCTAssertEqual(decodedValue, value)
+            } catch {
+                dump(error)
+                XCTFail("Could not decode \(value)")
+            }
+        }
+        
+        decode(Person(gender: .male, name: "Coleman"),
+               Data([0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110]))
+        
+        decode(ProvisioningState(state: .idle, result: .notAvailible),
+               Data([0x01, 0x01, 0x00, 0x02, 0x01, 0x00]))
+        
+        decode(ProvisioningState(state: .provisioning, result: .notAvailible),
                Data([0x01, 0x01, 0x01, 0x02, 0x01, 0x00]))
     }
     
