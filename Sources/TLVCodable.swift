@@ -21,10 +21,3 @@ public protocol TLVEncodable {
     
     var tlvData: Data { get }
 }
-
-/// TLV Numeric Encoding Format
-public enum TLVNumericFormat {
-    
-    case bigEndian
-    case littleEndian
-}
