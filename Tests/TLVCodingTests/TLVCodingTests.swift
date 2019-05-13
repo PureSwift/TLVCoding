@@ -72,6 +72,21 @@ final class TLVCodingTests: XCTestCase {
                 person: Person(
                     gender: .male,
                     name: "Coleman"
+                ), friends: [
+                    Person(
+                        gender: .male,
+                        name: "Coleman"
+                    )
+                ]),
+            Data([0, 12, 0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110,
+                  1, 14, 0, 12, 0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110])
+        )
+        
+        test(
+            Profile(
+                person: Person(
+                    gender: .male,
+                    name: "Coleman"
             ), friends: [
                 Person(
                     gender: .female,
@@ -91,7 +106,11 @@ final class TLVCodingTests: XCTestCase {
                // 3: "🏎"
                // ]
             ),
-            Data([0, 12, 0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110, 1, 29, 0, 1, 1, 1, 4, 71, 105, 110, 97, 0, 1, 1, 1, 5, 74, 111, 115, 115, 121, 0, 1, 0, 1, 5, 74, 111, 114, 103, 101])
+            Data([0, 12, 0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110,
+                  1, 35,
+                  0, 9, 0, 1, 1, 1, 4, 71, 105, 110, 97,
+                  1, 10, 0, 1, 1, 1, 5, 74, 111, 115, 115, 121,
+                  2, 10, 0, 1, 0, 1, 5, 74, 111, 114, 103, 101])
         )
     }
     
