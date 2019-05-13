@@ -172,21 +172,12 @@ public struct ProvisioningState: Codable, Equatable {
         
         case idle = 0x00
         case provisioning = 0x01
-        case provisioned = 0x02
-        case declined = 0x03
     }
     
     public enum Result: UInt8, Codable {
         
         case notAvailible = 0x00
         case success = 0x01
-        case invalidConfiguration = 0x02
-        case networkOutOfRange = 0x03
-        case invalidKey = 0x04
-        case otherError = 0x05
-        case connectFailed = 0x06
-        case connectTimeout = 0x07
-        case insufficientNetwork = 0x08
     }
 }
 
