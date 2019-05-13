@@ -14,7 +14,7 @@ final class TLVCodingTests: XCTestCase {
     
     static var allTests = [
         ("testCodable", testCodable),
-        ("testCodingKeys", testCodingKeys)
+        ("testCodingKeys", testCodingKeys),
     ]
     
     func testCodable() {
@@ -45,11 +45,13 @@ final class TLVCodingTests: XCTestCase {
         test(Person(gender: .male, name: "Coleman"),
             Data([0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110]))
         
+        #if swift(>=4.2)
         test(ProvisioningState(state: .idle, result: .notAvailible),
             Data([0x01, 0x01, 0x00, 0x02, 0x01, 0x00]))
         
         test(ProvisioningState(state: .provisioning, result: .notAvailible),
             Data([0x01, 0x01, 0x01, 0x02, 0x01, 0x00]))
+        #endif
         
         test(Numeric(
             boolean: true,
@@ -139,6 +141,7 @@ final class TLVCodingTests: XCTestCase {
     
     func testCodingKeys() {
         
+        #if swift(>=4.2)
         typealias CodingKeys = ProvisioningState.CodingKeys
         
         for codingKey in ProvisioningState.CodingKeys.allCases {
@@ -146,6 +149,9 @@ final class TLVCodingTests: XCTestCase {
             XCTAssertEqual(CodingKeys(rawValue: codingKey.rawValue), codingKey)
             XCTAssertEqual(CodingKeys(stringValue: codingKey.stringValue), codingKey)
         }
+        #endif
+    }
+    
     }
 }
 
@@ -163,6 +169,7 @@ public enum Gender: UInt8, Codable {
     case female
 }
 
+#if swift(>=4.2)
 public struct ProvisioningState: Codable, Equatable, Hashable {
     
     public var state: State
@@ -209,8 +216,9 @@ public extension ProvisioningState {
         case insufficientNetwork = 0x08
     }
 }
+#endif
 
-public struct Profile: Codable, Equatable, Hashable {
+public struct Profile: Codable, Equatable {
     
     public var person: Person
     public var friends: [Person]

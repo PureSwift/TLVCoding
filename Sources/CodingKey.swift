@@ -29,7 +29,7 @@ public extension TLVCodingKey {
     }
 }
 
-public extension TLVCodingKey where Self: RawRepresentable, RawValue == TLVTypeCode.RawValue {
+public extension TLVCodingKey where Self: RawRepresentable, Self.RawValue == TLVTypeCode.RawValue {
     
     init?(code: TLVTypeCode) {
         self.init(rawValue: code.rawValue)
@@ -40,6 +40,7 @@ public extension TLVCodingKey where Self: RawRepresentable, RawValue == TLVTypeC
     }
 }
 
+#if swift(>=4.2)
 public extension TLVCodingKey where Self: CaseIterable, Self: RawRepresentable, RawValue == TLVTypeCode.RawValue {
     
     init?(stringValue: String) {
@@ -50,6 +51,7 @@ public extension TLVCodingKey where Self: CaseIterable, Self: RawRepresentable, 
         self = value
     }
 }
+#endif
 
 internal extension TLVTypeCode {
     
