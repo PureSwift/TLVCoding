@@ -194,28 +194,14 @@ internal extension TLVDecoder.Decoder {
     
     func typeCode <Key: CodingKey> (for key: Key) throws -> TLVTypeCode {
         
-        if let tlvCodingKey = key as? TLVCodingKey {
-            
-            return tlvCodingKey.code
-            
-        } else if let intValue = key.intValue {
-            
-            guard intValue <= Int(UInt8.max),
-                intValue >= Int(UInt8.min) else {
-                    throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath, debugDescription: "Coding key \(key) has an invalid integer value \(intValue)"))
+        guard let typeCode = TLVTypeCode(codingKey: key) else {
+            if let intValue = key.intValue {
+                throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath, debugDescription: "Coding key \(key) has an invalid integer value \(intValue)"))
+            } else {
+                throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath, debugDescription: "Coding key \(key) has no integer value"))
             }
-            
-            return TLVTypeCode(rawValue: UInt8(intValue))
-            
-        } else if MemoryLayout<Key>.size == MemoryLayout<UInt8>.size,
-            Mirror(reflecting: key).displayStyle == .enum {
-            
-            return TLVTypeCode(rawValue: unsafeBitCast(key, to: UInt8.self))
-            
-        } else {
-            
-            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: codingPath, debugDescription: "Coding key \(key) has no integer value"))
         }
+        return typeCode
     }
 }
 
