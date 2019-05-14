@@ -41,7 +41,7 @@ public extension TLVCodingKey where Self: RawRepresentable, Self.RawValue == TLV
 }
 
 #if swift(>=4.2)
-public extension TLVCodingKey where Self: CaseIterable, Self: RawRepresentable, RawValue == TLVTypeCode.RawValue {
+public extension TLVCodingKey where Self: CaseIterable, Self: RawRepresentable, Self.RawValue == TLVTypeCode.RawValue {
     
     init?(stringValue: String) {
         
