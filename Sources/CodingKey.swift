@@ -55,7 +55,13 @@ public extension TLVCodingKey where Self: CaseIterable, Self: RawRepresentable, 
 
 internal extension TLVTypeCode {
     
-    init? <K: CodingKey> (codingKey: K) {
+    enum CodingKeyError: Error {
+        
+        case missingIntegerValue
+        case invalidIntegerValue(Int)
+    }
+    
+    init<K: CodingKey> (codingKey: K) throws {
         
         if let tlvCodingKey = codingKey as? TLVCodingKey {
             
@@ -65,17 +71,18 @@ internal extension TLVTypeCode {
             
             guard intValue <= Int(UInt8.max),
                 intValue >= Int(UInt8.min)
-                else { return nil }
+                else { throw CodingKeyError.invalidIntegerValue(intValue) }
             
             self.init(rawValue: UInt8(intValue))
             
-        } else if MemoryLayout<K>.size == MemoryLayout<UInt8>.size {
+        } else if MemoryLayout<K>.size == MemoryLayout<UInt8>.size,
+            Mirror(reflecting: codingKey).displayStyle == .enum {
             
             self.init(rawValue: unsafeBitCast(codingKey, to: UInt8.self))
             
         } else {
             
-            return nil
+            throw CodingKeyError.missingIntegerValue
         }
     }
 }
