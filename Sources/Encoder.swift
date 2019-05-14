@@ -171,14 +171,14 @@ internal extension TLVEncoder.Encoder {
     @inline(__always)
     func boxNumeric <T: TLVEncodable & FixedWidthInteger> (_ value: T) -> Data {
         
-        let endianValue: T
+        let numericValue: T
         switch options.numericFormat {
         case .bigEndian:
-            endianValue = value.bigEndian
+            numericValue = value.bigEndian
         case .littleEndian:
-            endianValue = value.littleEndian
+            numericValue = value.littleEndian
         }
-        return endianValue.tlvData
+        return box(numericValue)
     }
     
     func boxEncodable <T: Encodable> (_ value: T) throws -> Data {
