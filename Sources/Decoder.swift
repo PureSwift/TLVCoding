@@ -122,7 +122,7 @@ internal extension TLVDecoder {
         
         func container <Key: CodingKey> (keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> {
             
-            log?("Requested container keyed by \(String(reflecting: type)) for path \"\(codingPath.path)\"")
+            log?("Requested container keyed by \(type.sanitizedName) for path \"\(codingPath.path)\"")
             
             let container = self.stack.top
             
@@ -530,8 +530,7 @@ internal struct TLVSingleValueDecodingContainer: SingleValueDecodingContainer {
     
     func decode(_ type: Int.Type) throws -> Int {
         
-        let value = try self.decoder.unbox(container.value, as: Int32.self)
-        
+        let value = try self.decoder.unboxNumeric(container.value, as: Int32.self)
         return Int(value)
     }
     
@@ -542,23 +541,22 @@ internal struct TLVSingleValueDecodingContainer: SingleValueDecodingContainer {
     
     func decode(_ type: Int16.Type) throws -> Int16 {
         
-        return try self.decoder.unbox(container.value, as: type)
+        return try self.decoder.unboxNumeric(container.value, as: type)
     }
     
     func decode(_ type: Int32.Type) throws -> Int32 {
         
-        return try self.decoder.unbox(container.value, as: type)
+        return try self.decoder.unboxNumeric(container.value, as: type)
     }
     
     func decode(_ type: Int64.Type) throws -> Int64 {
         
-        return try self.decoder.unbox(container.value, as: type)
+        return try self.decoder.unboxNumeric(container.value, as: type)
     }
     
     func decode(_ type: UInt.Type) throws -> UInt {
         
-        let value = try self.decoder.unbox(container.value, as: UInt32.self)
-        
+        let value = try self.decoder.unboxNumeric(container.value, as: UInt32.self)
         return UInt(value)
     }
     
@@ -569,27 +567,29 @@ internal struct TLVSingleValueDecodingContainer: SingleValueDecodingContainer {
     
     func decode(_ type: UInt16.Type) throws -> UInt16 {
         
-        return try self.decoder.unbox(container.value, as: type)
+        return try self.decoder.unboxNumeric(container.value, as: type)
     }
     
     func decode(_ type: UInt32.Type) throws -> UInt32 {
         
-        return try self.decoder.unbox(container.value, as: type)
+        return try self.decoder.unboxNumeric(container.value, as: type)
     }
     
     func decode(_ type: UInt64.Type) throws -> UInt64 {
         
-        return try self.decoder.unbox(container.value, as: type)
+        return try self.decoder.unboxNumeric(container.value, as: type)
     }
     
     func decode(_ type: Float.Type) throws -> Float {
         
-        fatalError()
+        let value = try self.decoder.unboxNumeric(container.value, as: UInt32.self)
+        return Float(bitPattern: value)
     }
     
     func decode(_ type: Double.Type) throws -> Double {
         
-        fatalError()
+        let value = try self.decoder.unboxNumeric(container.value, as: UInt64.self)
+        return Double(bitPattern: value)
     }
     
     func decode(_ type: String.Type) throws -> String {
@@ -636,7 +636,7 @@ internal struct TLVUnkeyedDecodingContainer: UnkeyedDecodingContainer {
         return _count
     }
     
-    var _count: Int {
+    private var _count: Int {
         return container.count
     }
     

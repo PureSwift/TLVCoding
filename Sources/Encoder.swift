@@ -91,7 +91,7 @@ internal extension TLVEncoder {
         
         func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> where Key : CodingKey {
             
-            log?("Requested container keyed by \(type) for path \"\(codingPath.path)\"")
+            log?("Requested container keyed by \(type.sanitizedName) for path \"\(codingPath.path)\"")
             
             let stackContainer = ItemsContainer()
             self.stack.push(.items(stackContainer))
