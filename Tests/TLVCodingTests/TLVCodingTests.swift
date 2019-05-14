@@ -135,6 +135,14 @@ final class TLVCodingTests: XCTestCase {
             ),
             Data([0, 4, 1, 2, 3, 4, 1, 2, 1, 0])
         )
+        
+        test(
+            PrimitiveArray(
+                strings: ["1", "two", "three", ""],
+                integers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            ),
+            Data([0, 17, 0, 1, 49, 1, 3, 116, 119, 111, 2, 5, 116, 104, 114, 101, 101, 3, 0, 1, 60, 0, 4, 1, 0, 0, 0, 1, 4, 2, 0, 0, 0, 2, 4, 3, 0, 0, 0, 3, 4, 4, 0, 0, 0, 4, 4, 5, 0, 0, 0, 5, 4, 6, 0, 0, 0, 6, 4, 7, 0, 0, 0, 7, 4, 8, 0, 0, 0, 8, 4, 9, 0, 0, 0, 9, 4, 10, 0, 0, 0])
+        )
     }
     
     func testCodingKeys() {
@@ -273,4 +281,10 @@ public extension Binary {
             return rawValue.littleEndian.tlvData
         }
     }
+}
+
+public struct PrimitiveArray: Codable, Equatable {
+    
+    var strings: [String]
+    var integers: [Int]
 }
