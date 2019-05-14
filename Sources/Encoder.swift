@@ -30,6 +30,8 @@ public struct TLVEncoder {
     
     public func encode <T: Encodable> (_ value: T) throws -> Data {
         
+        log?("Will encode \(String(reflecting: T.self))")
+        
         let options = Encoder.Options(numericFormat: numericFormat)
         let encoder = Encoder(userInfo: userInfo, log: log, options: options)
         try value.encode(to: encoder)
@@ -594,6 +596,7 @@ internal final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
 private extension TLVEncodable {
     
     var copyingBytes: Data {
+        
         #if swift(>=5)
         return withUnsafePointer(to: self, { Data(bytes: $0, count: MemoryLayout<Self>.size) })
         #else

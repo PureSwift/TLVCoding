@@ -30,6 +30,8 @@ public struct TLVDecoder {
     
     public func decode <T: Decodable> (_ type: T.Type, from data: Data) throws -> T {
         
+        log?("Will decode \(String(reflecting: T.self))")
+        
         let items = try decode(data)
         
         let options = Decoder.Options(numericFormat: numericFormat)
