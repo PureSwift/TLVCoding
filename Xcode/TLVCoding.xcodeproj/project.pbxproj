@@ -44,10 +44,10 @@
 		6E8FE77122890C8800CBCFA9 /* Integer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE76F22890C8800CBCFA9 /* Integer.swift */; };
 		6E8FE77222890C8800CBCFA9 /* Integer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE76F22890C8800CBCFA9 /* Integer.swift */; };
 		6E8FE77322890C8800CBCFA9 /* Integer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE76F22890C8800CBCFA9 /* Integer.swift */; };
-		6E8FE7752289356200CBCFA9 /* NumericFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7742289356200CBCFA9 /* NumericFormat.swift */; };
-		6E8FE7762289356200CBCFA9 /* NumericFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7742289356200CBCFA9 /* NumericFormat.swift */; };
-		6E8FE7772289356200CBCFA9 /* NumericFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7742289356200CBCFA9 /* NumericFormat.swift */; };
-		6E8FE7782289356200CBCFA9 /* NumericFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7742289356200CBCFA9 /* NumericFormat.swift */; };
+		6E8FE7752289356200CBCFA9 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7742289356200CBCFA9 /* Format.swift */; };
+		6E8FE7762289356200CBCFA9 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7742289356200CBCFA9 /* Format.swift */; };
+		6E8FE7772289356200CBCFA9 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7742289356200CBCFA9 /* Format.swift */; };
+		6E8FE7782289356200CBCFA9 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8FE7742289356200CBCFA9 /* Format.swift */; };
 		8933C78E1EB5B82C000D00A4 /* TLVCodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933C7891EB5B82A000D00A4 /* TLVCodingTests.swift */; };
 		8933C78F1EB5B82C000D00A4 /* TLVCodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933C7891EB5B82A000D00A4 /* TLVCodingTests.swift */; };
 		8933C7901EB5B82D000D00A4 /* TLVCodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933C7891EB5B82A000D00A4 /* TLVCodingTests.swift */; };
@@ -94,7 +94,7 @@
 		6E8FE7612288824000CBCFA9 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
 		6E8FE7662288920600CBCFA9 /* TypeCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypeCode.swift; sourceTree = "<group>"; };
 		6E8FE76F22890C8800CBCFA9 /* Integer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Integer.swift; sourceTree = "<group>"; };
-		6E8FE7742289356200CBCFA9 /* NumericFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumericFormat.swift; sourceTree = "<group>"; };
+		6E8FE7742289356200CBCFA9 /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
 		8933C7891EB5B82A000D00A4 /* TLVCodingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TLVCodingTests.swift; sourceTree = "<group>"; };
 		AD2FAA261CD0B6D800659CF4 /* TLVCoding.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = TLVCoding.plist; sourceTree = "<group>"; };
 		AD2FAA281CD0B6E100659CF4 /* TLVCodingTests.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = TLVCodingTests.plist; sourceTree = "<group>"; };
@@ -203,7 +203,7 @@
 				6E8FE7572288811800CBCFA9 /* Data.swift */,
 				6E8FE75C228881DF00CBCFA9 /* DataConvertible.swift */,
 				6E8FE76F22890C8800CBCFA9 /* Integer.swift */,
-				6E8FE7742289356200CBCFA9 /* NumericFormat.swift */,
+				6E8FE7742289356200CBCFA9 /* Format.swift */,
 			);
 			name = Sources;
 			path = ../Sources;
@@ -517,7 +517,7 @@
 			files = (
 				6E8F3AFC2051DA85006964D5 /* Encoder.swift in Sources */,
 				6E8FE7582288811800CBCFA9 /* Data.swift in Sources */,
-				6E8FE7752289356200CBCFA9 /* NumericFormat.swift in Sources */,
+				6E8FE7752289356200CBCFA9 /* Format.swift in Sources */,
 				6E8F3B012051DA8D006964D5 /* Decoder.swift in Sources */,
 				6E8FE77022890C8800CBCFA9 /* Integer.swift in Sources */,
 				6E8F3AF72051DA65006964D5 /* TLVCodable.swift in Sources */,
@@ -542,7 +542,7 @@
 			files = (
 				6E8F3AFE2051DA85006964D5 /* Encoder.swift in Sources */,
 				6E8FE75A2288811800CBCFA9 /* Data.swift in Sources */,
-				6E8FE7772289356200CBCFA9 /* NumericFormat.swift in Sources */,
+				6E8FE7772289356200CBCFA9 /* Format.swift in Sources */,
 				6E8F3B032051DA8D006964D5 /* Decoder.swift in Sources */,
 				6E8FE77222890C8800CBCFA9 /* Integer.swift in Sources */,
 				6E8F3AF92051DA65006964D5 /* TLVCodable.swift in Sources */,
@@ -559,7 +559,7 @@
 			files = (
 				6E8F3AFF2051DA85006964D5 /* Encoder.swift in Sources */,
 				6E8FE75B2288811800CBCFA9 /* Data.swift in Sources */,
-				6E8FE7782289356200CBCFA9 /* NumericFormat.swift in Sources */,
+				6E8FE7782289356200CBCFA9 /* Format.swift in Sources */,
 				6E8F3B042051DA8D006964D5 /* Decoder.swift in Sources */,
 				6E8FE77322890C8800CBCFA9 /* Integer.swift in Sources */,
 				6E8F3AFA2051DA65006964D5 /* TLVCodable.swift in Sources */,
@@ -576,7 +576,7 @@
 			files = (
 				6E8F3AFD2051DA85006964D5 /* Encoder.swift in Sources */,
 				6E8FE7592288811800CBCFA9 /* Data.swift in Sources */,
-				6E8FE7762289356200CBCFA9 /* NumericFormat.swift in Sources */,
+				6E8FE7762289356200CBCFA9 /* Format.swift in Sources */,
 				6E8F3B022051DA8D006964D5 /* Decoder.swift in Sources */,
 				6E8FE77122890C8800CBCFA9 /* Integer.swift in Sources */,
 				6E8F3AF82051DA65006964D5 /* TLVCodable.swift in Sources */,

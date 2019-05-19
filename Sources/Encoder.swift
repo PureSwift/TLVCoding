@@ -22,6 +22,9 @@ public struct TLVEncoder {
     /// Format for numeric values.
     public var numericFormat: TLVNumericFormat = .littleEndian
     
+    /// Format for UUID values.
+    public var uuidFormat: TLVUUIDFormat = .bytes
+    
     // MARK: - Initialization
     
     public init() { }
@@ -32,7 +35,10 @@ public struct TLVEncoder {
         
         log?("Will encode \(String(reflecting: T.self))")
         
-        let options = Encoder.Options(numericFormat: numericFormat)
+        let options = Encoder.Options(
+            numericFormat: numericFormat,
+            uuidFormat: uuidFormat
+        )
         let encoder = Encoder(userInfo: userInfo, log: log, options: options)
         try value.encode(to: encoder)
         assert(encoder.stack.containers.count == 1)
@@ -125,10 +131,7 @@ internal extension TLVEncoder {
 
 internal extension TLVEncoder.Encoder {
     
-    struct Options {
-        
-        let numericFormat: TLVNumericFormat
-    }
+    typealias Options = TLVOptions
 }
 
 internal extension TLVEncoder.Encoder {
@@ -168,10 +171,17 @@ internal extension TLVEncoder.Encoder {
     
     func boxEncodable <T: Encodable> (_ value: T) throws -> Data {
         
-        if let tlvEncodable = value as? TLVEncodable {
-            return tlvEncodable.tlvData
-        } else if let data = value as? Data {
+        if let data = value as? Data {
             return data
+        } else if let uuid = value as? UUID {
+            switch options.uuidFormat {
+            case .bytes:
+                return Data(uuid)
+            case .string:
+                return uuid.uuidString.tlvData
+            }
+        } else if let tlvEncodable = value as? TLVEncodable {
+            return tlvEncodable.tlvData
         } else {
             // encode using Encodable, should push new container.
             try value.encode(to: self)

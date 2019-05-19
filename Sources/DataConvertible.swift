@@ -68,6 +68,7 @@ extension UnsafeDataConvertible {
 extension UInt16: UnsafeDataConvertible { }
 extension UInt32: UnsafeDataConvertible { }
 extension UInt64: UnsafeDataConvertible { }
+extension UUID: UnsafeDataConvertible { }
 
 // MARK: - DataContainer
 

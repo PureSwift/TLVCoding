@@ -155,6 +155,43 @@ final class TLVCodingTests: XCTestCase {
             XCTAssertEqual(CodingKeys(stringValue: codingKey.stringValue), codingKey)
         }
     }
+    
+    func testUUID() {
+        
+        let formats: [TLVUUIDFormat] = [.bytes, .string]
+        
+        for format in formats {
+            
+            let value = CustomEncodable(
+                data: nil,
+                uuid: UUID(),
+                number: nil
+            )
+            
+            var encodedData = Data()
+            var encoder = TLVEncoder()
+            encoder.uuidFormat = format
+            encoder.log = { print("Encoder:", $0) }
+            do {
+                encodedData = try encoder.encode(value)
+            } catch {
+                dump(error)
+                XCTFail("Could not encode \(value)")
+                return
+            }
+            
+            var decoder = TLVDecoder()
+            decoder.uuidFormat = format
+            decoder.log = { print("Decoder:", $0) }
+            do {
+                let decodedValue = try decoder.decode(CustomEncodable.self, from: encodedData)
+                XCTAssertEqual(decodedValue, value)
+            } catch {
+                dump(error)
+                XCTFail("Could not decode \(value)")
+            }
+        }
+    }
 }
 
 // MARK: - Supporting Types
@@ -256,30 +293,27 @@ public struct Numeric: Codable, Equatable, Hashable {
 public struct Binary: Codable, Equatable, Hashable {
     
     public var data: Data
-    public var value: Codable
+    public var value: TLVCodableNumber
 }
 
-public extension Binary {
+public enum TLVCodableNumber: UInt16, Equatable, Hashable, Swift.Codable, TLVCodable {
     
-    enum Codable: UInt16, Equatable, Hashable, Swift.Codable, TLVCodable {
+    case zero
+    case one
+    case two
+    case three
+    
+    public init?(tlvData: Data) {
         
-        case zero
-        case one
-        case two
-        case three
+        guard let rawValue = UInt16(tlvData: tlvData)?.littleEndian
+            else { return nil }
         
-        public init?(tlvData: Data) {
-            
-            guard let rawValue = UInt16(tlvData: tlvData)?.littleEndian
-                else { return nil }
-            
-            self.init(rawValue: rawValue)
-        }
+        self.init(rawValue: rawValue)
+    }
+    
+    public var tlvData: Data {
         
-        public var tlvData: Data {
-            
-            return rawValue.littleEndian.tlvData
-        }
+        return rawValue.littleEndian.tlvData
     }
 }
 
@@ -287,4 +321,11 @@ public struct PrimitiveArray: Codable, Equatable {
     
     var strings: [String]
     var integers: [Int]
+}
+
+public struct CustomEncodable: Codable, Equatable {
+    
+    public var data: Data?
+    public var uuid: UUID?
+    public var number: TLVCodableNumber?
 }

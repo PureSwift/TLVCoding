@@ -22,6 +22,9 @@ public struct TLVDecoder {
     /// Format for numeric values.
     public var numericFormat: TLVNumericFormat = .littleEndian
     
+    /// Format for UUID values.
+    public var uuidFormat: TLVUUIDFormat = .bytes
+    
     // MARK: - Initialization
     
     public init() { }
@@ -34,7 +37,10 @@ public struct TLVDecoder {
         
         let items = try decode(data)
         
-        let options = Decoder.Options(numericFormat: numericFormat)
+        let options = Decoder.Options(
+            numericFormat: numericFormat,
+            uuidFormat: uuidFormat
+        )
         
         let decoder = Decoder(referencing: .items(items),
                               userInfo: userInfo,
@@ -182,10 +188,7 @@ internal extension TLVDecoder {
 
 internal extension TLVDecoder.Decoder {
     
-    struct Options {
-        
-        let numericFormat: TLVNumericFormat
-    }
+    typealias Options = TLVOptions
 }
 
 // MARK: - Coding Key
@@ -237,12 +240,33 @@ internal extension TLVDecoder.Decoder {
         // override for native types
         if type == Data.self {
             return item.value as! T // In this case T is Data
+        } else if type == UUID.self {
+            return try unboxUUID(item.value) as! T
         } else {
             // push container to stack and decode using Decodable implementation
             stack.push(.item(item))
             let decoded = try T(from: self)
             stack.pop()
             return decoded
+        }
+    }
+    
+    private func unboxUUID(_ data: Data) throws -> UUID {
+        
+        switch options.uuidFormat {
+        case .bytes:
+            guard data.count == MemoryLayout<uuid_t>.size else {
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Invalud number of bytes (\(data.count)) for UUID"))
+            }
+            return UUID(uuid: (data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]))
+        case .string:
+            guard let string = String(tlvData: data) else {
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Invalid string data for UUID"))
+            }
+            guard let uuid = UUID(uuidString: string) else {
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Invalid UUID string \(string)"))
+            }
+            return uuid
         }
     }
 }
