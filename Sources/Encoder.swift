@@ -174,12 +174,7 @@ internal extension TLVEncoder.Encoder {
         if let data = value as? Data {
             return data
         } else if let uuid = value as? UUID {
-            switch options.uuidFormat {
-            case .bytes:
-                return Data(uuid)
-            case .string:
-                return uuid.uuidString.tlvData
-            }
+            return boxUUID(uuid)
         } else if let tlvEncodable = value as? TLVEncodable {
             return tlvEncodable.tlvData
         } else {
@@ -187,6 +182,15 @@ internal extension TLVEncoder.Encoder {
             try value.encode(to: self)
             let nestedContainer = stack.pop()
             return nestedContainer.data
+        }
+    }
+    
+    private func boxUUID(_ uuid: UUID) -> Data {
+        switch options.uuidFormat {
+        case .bytes:
+            return Data(uuid)
+        case .string:
+            return uuid.uuidString.tlvData
         }
     }
 }
