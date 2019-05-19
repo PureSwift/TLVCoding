@@ -261,11 +261,6 @@ extension ProvisioningState.CodingKeys {
 
 #if swift(>=4.2)
 #else
-protocol CaseIterable: Hashable {
-    
-    static var allCases: Set<Self> { get }
-}
-
 extension ProvisioningState.CodingKeys {
     
     static let allCases: Set<ProvisioningState.CodingKeys> = [.state, .result]
@@ -375,6 +370,11 @@ public extension DeviceInformation {
         case bluetooth  = 0b001
         case camera     = 0b010
         case gps        = 0b100
+        
+        #if swift(>=4.2)
+        #else
+        public static let allCases: Set<DeviceInformation.Feature> = [.bluetooth, .camera, .gps]
+        #endif
     }
 }
 
@@ -405,6 +405,23 @@ extension Version: TLVCodable {
     }
 }
 
+#if swift(>=4.2)
+#else
+/// A type that provides a collection of all of its values.
+///
+/// Types that conform to the `CaseIterable` protocol are typically
+/// enumerations without associated values. When using a `CaseIterable` type,
+/// you can access a collection of all of the type's cases by using the type's
+/// `allCases` property.
+public protocol CaseIterable {
+    
+    /// A type that can represent a collection of all values of this type.
+    associatedtype AllCases: Collection where Self.AllCases.Element == Self
+    
+    /// A collection of all values of this type.
+    static var allCases: Self.AllCases { get }
+}
+#endif
 
 /// Enum that represents a bit mask flag / option.
 ///
@@ -520,22 +537,16 @@ public struct BitMaskOptionSet <Element: BitMaskOption>: RawRepresentable {
 public extension BitMaskOptionSet {
     
     init<S: Sequence>(_ sequence: S) where S.Iterator.Element == Element {
-        
         self.rawValue = sequence.rawValue
     }
 }
 
-// MARK: - Equatable
-
 extension BitMaskOptionSet: Equatable {
     
     public static func == (lhs: BitMaskOptionSet, rhs: BitMaskOptionSet) -> Bool {
-        
         return lhs.rawValue == rhs.rawValue
     }
 }
-
-// MARK: - CustomStringConvertible
 
 extension BitMaskOptionSet: CustomStringConvertible {
     
@@ -547,24 +558,18 @@ extension BitMaskOptionSet: CustomStringConvertible {
     }
 }
 
-// MARK: - Hashable
-
 extension BitMaskOptionSet: Hashable {
     
     #if swift(>=4.2)
     public func hash(into hasher: inout Hasher) {
-        
         rawValue.hash(into: &hasher)
     }
     #else
     public var hashValue: Int {
-        
         return rawValue.hashValue
     }
     #endif
 }
-
-// MARK: - ExpressibleByArrayLiteral
 
 extension BitMaskOptionSet: ExpressibleByArrayLiteral {
     
@@ -574,8 +579,6 @@ extension BitMaskOptionSet: ExpressibleByArrayLiteral {
     }
 }
 
-// MARK: - ExpressibleByIntegerLiteral
-
 extension BitMaskOptionSet: ExpressibleByIntegerLiteral {
     
     public init(integerLiteral value: UInt64) {
@@ -583,8 +586,6 @@ extension BitMaskOptionSet: ExpressibleByIntegerLiteral {
         self.init(rawValue: numericCast(value))
     }
 }
-
-// MARK: - Sequence
 
 extension BitMaskOptionSet: Sequence {
     
@@ -594,8 +595,7 @@ extension BitMaskOptionSet: Sequence {
     }
 }
 
-// MARK: - Codable
-
+#if swift(>=5.0)
 extension BitMaskOptionSet: Codable where RawValue: Codable {
     
     public init(from decoder: Decoder) throws {
@@ -611,3 +611,20 @@ extension BitMaskOptionSet: Codable where RawValue: Codable {
         try container.encode(rawValue)
     }
 }
+#else
+extension BitMaskOptionSet: Codable where BitMaskOptionSet.RawValue == UInt8 {
+    
+    public init(from decoder: Decoder) throws {
+        
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(UInt8.self)
+        self.init(rawValue: rawValue)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+#endif
