@@ -595,8 +595,7 @@ extension BitMaskOptionSet: Sequence {
     }
 }
 
-#if swift(>=5.0)
-extension BitMaskOptionSet: Codable where RawValue: Codable {
+extension BitMaskOptionSet: Codable where BitMaskOptionSet.RawValue: Codable {
     
     public init(from decoder: Decoder) throws {
         
@@ -611,20 +610,3 @@ extension BitMaskOptionSet: Codable where RawValue: Codable {
         try container.encode(rawValue)
     }
 }
-#else
-extension BitMaskOptionSet: Codable where BitMaskOptionSet.RawValue == UInt8 {
-    
-    public init(from decoder: Decoder) throws {
-        
-        let container = try decoder.singleValueContainer()
-        let rawValue = try container.decode(UInt8.self)
-        self.init(rawValue: rawValue)
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        
-        var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
-    }
-}
-#endif
