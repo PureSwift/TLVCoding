@@ -146,6 +146,17 @@ final class TLVCodingTests: XCTestCase {
             ),
             Data([0, 17, 0, 1, 49, 1, 3, 116, 119, 111, 2, 5, 116, 104, 114, 101, 101, 3, 0, 1, 60, 0, 4, 1, 0, 0, 0, 1, 4, 2, 0, 0, 0, 2, 4, 3, 0, 0, 0, 3, 4, 4, 0, 0, 0, 4, 4, 5, 0, 0, 0, 5, 4, 6, 0, 0, 0, 6, 4, 7, 0, 0, 0, 7, 4, 8, 0, 0, 0, 8, 4, 9, 0, 0, 0, 9, 4, 10, 0, 0, 0])
         )
+        
+        test(
+            DeviceInformation(
+                identifier: UUID(uuidString: "B83DD6F4-A429-41B3-945A-3E0EE5915CA1")!,
+                buildVersion: DeviceInformation.BuildVersion(rawValue: 1),
+                version: Version(major: 1, minor: 2, patch: 3),
+                status: .provisioned,
+                features: .all
+            ),
+            Data([0, 16, 184, 61, 214, 244, 164, 41, 65, 179, 148, 90, 62, 14, 229, 145, 92, 161, 1, 8, 1, 0, 0, 0, 0, 0, 0, 0, 2, 3, 1, 2, 3, 3, 1, 2, 4, 1, 7])
+        )
     }
     
     func testCodingKeys() {
@@ -331,4 +342,272 @@ public struct CustomEncodable: Codable, Equatable {
     public var data: Data?
     public var uuid: UUID?
     public var number: TLVCodableNumber?
+}
+
+public struct DeviceInformation: Equatable, Codable {
+    
+    public let identifier: UUID
+    public let buildVersion: BuildVersion
+    public let version: Version
+    public var status: Status
+    public let features: BitMaskOptionSet<Feature>
+}
+
+public extension DeviceInformation {
+    
+    enum Status: UInt8, Codable {
+        case idle = 0x00
+        case provisioning = 0x01
+        case provisioned = 0x02
+    }
+    
+    struct BuildVersion: RawRepresentable, Equatable, Hashable, Codable {
+        
+        public let rawValue: UInt64
+        
+        public init(rawValue: UInt64) {
+            self.rawValue = rawValue
+        }
+    }
+    
+    enum Feature: UInt8, BitMaskOption, Codable {
+        
+        case bluetooth  = 0b001
+        case camera     = 0b010
+        case gps        = 0b100
+    }
+}
+
+public struct Version: Equatable, Hashable, Codable {
+    
+    public var major: UInt8
+    
+    public var minor: UInt8
+    
+    public var patch: UInt8
+}
+
+extension Version: TLVCodable {
+    
+    internal static var length: Int { return 3 }
+    
+    public init?(tlvData: Data) {
+        guard tlvData.count == Version.length
+            else { return nil }
+        
+        self.major = tlvData[0]
+        self.minor = tlvData[1]
+        self.patch = tlvData[2]
+    }
+    
+    public var tlvData: Data {
+        return Data([major, minor, patch])
+    }
+}
+
+
+/// Enum that represents a bit mask flag / option.
+///
+/// Basically `Swift.OptionSet` for enums.
+public protocol BitMaskOption: RawRepresentable, Hashable, CaseIterable where RawValue: FixedWidthInteger { }
+
+public extension Sequence where Element: BitMaskOption {
+    
+    /// Convert Swift enums for bit mask options into their raw values OR'd.
+    var rawValue: Element.RawValue {
+        
+        @inline(__always)
+        get { return reduce(0, { $0 | $1.rawValue }) }
+    }
+}
+
+public extension BitMaskOption {
+    
+    /// Whether the enum case is present in the raw value.
+    @inline(__always)
+    func isContained(in rawValue: RawValue) -> Bool {
+        
+        return (self.rawValue & rawValue) != 0
+    }
+    
+    @inline(__always)
+    static func from(rawValue: RawValue) -> [Self] {
+        
+        return Self.allCases.filter { $0.isContained(in: rawValue) }
+    }
+}
+
+// MARK: - BitMaskOptionSet
+
+/// Integer-backed array type for `BitMaskOption`.
+///
+/// The elements are packed in the integer with bitwise math and stored on the stack.
+public struct BitMaskOptionSet <Element: BitMaskOption>: RawRepresentable {
+    
+    public typealias RawValue = Element.RawValue
+    
+    public private(set) var rawValue: RawValue
+    
+    @inline(__always)
+    public init(rawValue: RawValue) {
+        
+        self.rawValue = rawValue
+    }
+    
+    @inline(__always)
+    public init() {
+        
+        self.rawValue = 0
+    }
+    
+    public static var all: BitMaskOptionSet<Element> {
+        
+        return BitMaskOptionSet<Element>(rawValue: Element.allCases.rawValue)
+    }
+    
+    @inline(__always)
+    public mutating func insert(_ element: Element) {
+        
+        rawValue = rawValue | element.rawValue
+    }
+    
+    @discardableResult
+    public mutating func remove(_ element: Element) -> Bool {
+        
+        guard contains(element) else { return false }
+        
+        rawValue = rawValue & ~element.rawValue
+        
+        return true
+    }
+    
+    @inline(__always)
+    public mutating func removeAll() {
+        
+        self.rawValue = 0
+    }
+    
+    @inline(__always)
+    public func contains(_ element: Element) -> Bool {
+        
+        return element.isContained(in: rawValue)
+    }
+    
+    public func contains <S: Sequence> (_ other: S) -> Bool where S.Iterator.Element == Element {
+        
+        for element in other {
+            
+            guard element.isContained(in: rawValue)
+                else { return false }
+        }
+        
+        return true
+    }
+    
+    public var count: Int {
+        
+        return Element.allCases.reduce(0, { $0 + ($1.isContained(in: rawValue) ? 1 : 0) })
+    }
+    
+    public var isEmpty: Bool {
+        
+        return rawValue == 0
+    }
+}
+
+// MARK: - Sequence Conversion
+
+public extension BitMaskOptionSet {
+    
+    init<S: Sequence>(_ sequence: S) where S.Iterator.Element == Element {
+        
+        self.rawValue = sequence.rawValue
+    }
+}
+
+// MARK: - Equatable
+
+extension BitMaskOptionSet: Equatable {
+    
+    public static func == (lhs: BitMaskOptionSet, rhs: BitMaskOptionSet) -> Bool {
+        
+        return lhs.rawValue == rhs.rawValue
+    }
+}
+
+// MARK: - CustomStringConvertible
+
+extension BitMaskOptionSet: CustomStringConvertible {
+    
+    public var description: String {
+        
+        return Element.from(rawValue: rawValue)
+            .sorted(by: { $0.rawValue < $1.rawValue })
+            .description
+    }
+}
+
+// MARK: - Hashable
+
+extension BitMaskOptionSet: Hashable {
+    
+    #if swift(>=4.2)
+    public func hash(into hasher: inout Hasher) {
+        
+        rawValue.hash(into: &hasher)
+    }
+    #else
+    public var hashValue: Int {
+        
+        return rawValue.hashValue
+    }
+    #endif
+}
+
+// MARK: - ExpressibleByArrayLiteral
+
+extension BitMaskOptionSet: ExpressibleByArrayLiteral {
+    
+    public init(arrayLiteral elements: Element...) {
+        
+        self.init(elements)
+    }
+}
+
+// MARK: - ExpressibleByIntegerLiteral
+
+extension BitMaskOptionSet: ExpressibleByIntegerLiteral {
+    
+    public init(integerLiteral value: UInt64) {
+        
+        self.init(rawValue: numericCast(value))
+    }
+}
+
+// MARK: - Sequence
+
+extension BitMaskOptionSet: Sequence {
+    
+    public func makeIterator() -> IndexingIterator<[Element]> {
+        
+        return Element.from(rawValue: rawValue).makeIterator()
+    }
+}
+
+// MARK: - Codable
+
+extension BitMaskOptionSet: Codable where RawValue: Codable {
+    
+    public init(from decoder: Decoder) throws {
+        
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(RawValue.self)
+        self.init(rawValue: rawValue)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
