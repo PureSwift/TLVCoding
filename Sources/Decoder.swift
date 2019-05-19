@@ -257,6 +257,11 @@ internal extension TLVDecoder.Decoder {
             return item.value as! T // In this case T is Data
         } else if type == UUID.self {
             return try unboxUUID(item.value) as! T
+        } else if let tlvCodable = type as? TLVCodable.Type {
+            guard let value = tlvCodable.init(tlvData: item.value) else {
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Invalid data for \(String(reflecting: type))"))
+            }
+            return value as! T
         } else {
             // push container to stack and decode using Decodable implementation
             stack.push(.item(item))
