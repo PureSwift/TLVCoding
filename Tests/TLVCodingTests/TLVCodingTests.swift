@@ -45,6 +45,9 @@ final class TLVCodingTests: XCTestCase {
         test(Person(gender: .male, name: "Coleman"),
             Data([0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110]))
         
+        test(Person(gender: .male, name: ""),
+             Data([0, 1, 0, 1, 0]))
+        
         test(ProvisioningState(state: .idle, result: .notAvailible),
             Data([0x01, 0x01, 0x00, 0x02, 0x01, 0x00]))
         

@@ -64,7 +64,7 @@ public struct TLVDecoder {
         while offset < data.count {
             
             // validate size
-            guard data.count >= 3 else {
+            guard data.count >= offset + 2 else {
                 //throw DecodingError.invalidSize(data.count, context: DecodingContext(offset: offset))
                 throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Not enough bytes (\(data.count)) to continue parsing at offset \(offset)"))
             }
@@ -76,8 +76,23 @@ public struct TLVDecoder {
             let length = Int(data[offset]) // 1
             offset += 1
             
-            // get value
-            let valueData = Data(data[offset ..< offset + length])
+            let valueData: Data
+            
+            if length > 0 {
+                
+                // validate size
+                guard data.count > offset else {
+                    //throw DecodingError.invalidSize(data.count, context: DecodingContext(offset: offset))
+                    throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Not enough bytes (\(data.count)) to continue parsing at offset \(offset)"))
+                }
+                
+                // get value
+                valueData = Data(data[offset ..< offset + length])
+                
+            } else {
+                
+                valueData = Data()
+            }
             
             let item = TLVItem(type: TLVTypeCode(rawValue: typeByte), value: valueData)
             
