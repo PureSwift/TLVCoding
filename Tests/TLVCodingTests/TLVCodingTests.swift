@@ -14,7 +14,8 @@ final class TLVCodingTests: XCTestCase {
     
     static var allTests = [
         ("testCodable", testCodable),
-        ("testCodingKeys", testCodingKeys)
+        ("testCodingKeys", testCodingKeys),
+        ("testUUID", testUUID)
     ]
     
     func testCodable() {
@@ -362,6 +363,19 @@ public extension DeviceInformation {
         
         public init(rawValue: UInt64) {
             self.rawValue = rawValue
+        }
+        
+        public init(from decoder: Decoder) throws {
+            
+            let container = try decoder.singleValueContainer()
+            let rawValue = try container.decode(RawValue.self)
+            self.init(rawValue: rawValue)
+        }
+        
+        public func encode(to encoder: Encoder) throws {
+            
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
         }
     }
     
