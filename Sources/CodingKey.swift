@@ -69,13 +69,17 @@ internal extension TLVTypeCode {
             
             self.init(rawValue: UInt8(intValue))
             
-        } else if MemoryLayout<K>.size == MemoryLayout<UInt8>.size,
-            Mirror(reflecting: codingKey).displayStyle == .enum {
+        } else if Mirror(reflecting: codingKey).displayStyle == .enum {
             
-            self.init(rawValue: unsafeBitCast(codingKey, to: UInt8.self))
-            
+            switch MemoryLayout<K>.size {
+            case MemoryLayout<UInt8>.size:
+                self.init(rawValue: unsafeBitCast(codingKey, to: UInt8.self))
+            case 0: // single case enum
+                self.init(rawValue: 0)
+            default:
+                return nil
+            }
         } else {
-            
             return nil
         }
     }

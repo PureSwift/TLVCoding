@@ -65,7 +65,6 @@ public struct TLVDecoder {
             
             // validate size
             guard data.count >= offset + 2 else {
-                //throw DecodingError.invalidSize(data.count, context: DecodingContext(offset: offset))
                 throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Not enough bytes (\(data.count)) to continue parsing at offset \(offset)"))
             }
             

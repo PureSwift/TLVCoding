@@ -158,6 +158,12 @@ final class TLVCodingTests: XCTestCase {
             ),
             Data([0, 16, 184, 61, 214, 244, 164, 41, 65, 179, 148, 90, 62, 14, 229, 145, 92, 161, 1, 8, 1, 0, 0, 0, 0, 0, 0, 0, 2, 3, 1, 2, 3, 3, 1, 2, 4, 1, 7])
         )
+        
+        test(
+            CryptoRequest(secret: CryptoData()),
+            Data([0, 32, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255])
+        )
+        
     }
     
     func testCodingKeys() {
@@ -416,6 +422,75 @@ extension Version: TLVCodable {
     
     public var tlvData: Data {
         return Data([major, minor, patch])
+    }
+}
+
+public struct CryptoRequest: Equatable, Codable {
+    
+    ///  Private key data.
+    public let secret: CryptoData
+    
+    public init(secret: CryptoData) {
+        self.secret = secret
+    }
+}
+
+public protocol SecureData: Hashable {
+    
+    /// The data length.
+    static var length: Int { get }
+    
+    /// The data.
+    var data: Data { get }
+    
+    /// Initialize with data.
+    init?(data: Data)
+    
+    /// Initialize with random value.
+    init()
+}
+
+public extension SecureData where Self: Decodable {
+    
+    init(from decoder: Decoder) throws {
+        
+        let container = try decoder.singleValueContainer()
+        let data = try container.decode(Data.self)
+        guard let value = Self(data: data) else {
+            throw DecodingError.typeMismatch(Self.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Invalid number of bytes \(data.count) for \(String(reflecting: Self.self))"))
+        }
+        self = value
+    }
+}
+
+public extension SecureData where Self: Encodable {
+    
+    func encode(to encoder: Encoder) throws {
+        
+        var container = encoder.singleValueContainer()
+        try container.encode(data)
+    }
+}
+
+/// Crypto Data
+public struct CryptoData: SecureData, Codable {
+    
+    public static let length = 256 / 8 // 32
+    
+    public let data: Data
+    
+    public init?(data: Data) {
+        
+        guard data.count == type(of: self).length
+            else { return nil }
+        
+        self.data = data
+    }
+    
+    /// Initializes with a random value.
+    public init() {
+        
+        self.data = Data(repeating: 0xFF, count: type(of: self).length) // no really random
     }
 }
 
