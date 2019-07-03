@@ -164,6 +164,36 @@ final class TLVCodingTests: XCTestCase {
             Data([0, 32, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255])
         )
         
+        test(
+            CustomEncodableArray(elements: [
+                .value(
+                    CustomEncodableArray.Value(
+                        identifier: UUID(uuidString: "B83DD6F4-A429-41B3-945A-3E0EE5915CA1")!,
+                        name: "Value 1"
+                    )
+                ),
+                .value(
+                    CustomEncodableArray.Value(
+                        identifier: UUID(uuidString: "B83DD6F4-A429-41B3-945A-3E0EE5915CA2")!,
+                        name: "Value 2"
+                    )
+                ),
+                .pendingValue(
+                    CustomEncodableArray.PendingValue(
+                        identifier: UUID(uuidString: "B83DD6F4-A429-41B3-945A-3E0EE5915CA3")!,
+                        name: "Pending Value 1",
+                        expiration: Date.distantFuture
+                    )
+                )
+                ]
+            ),
+            Data([
+                0, 32, 0, 1, 0, 1, 27, 0, 16, 184, 61, 214, 244, 164, 41, 65, 179, 148, 90, 62, 14, 229, 145, 92, 161, 1, 7, 86, 97, 108, 117, 101, 32, 49,
+                1, 32, 0, 1, 0, 1, 27, 0, 16, 184, 61, 214, 244, 164, 41, 65, 179, 148, 90, 62, 14, 229, 145, 92, 162, 1, 7, 86, 97, 108, 117, 101, 32, 50,
+                2, 50, 0, 1, 1, 1, 45, 0, 16, 184, 61, 214, 244, 164, 41, 65, 179, 148, 90, 62, 14, 229, 145, 92, 163, 1, 15, 80, 101, 110, 100, 105, 110, 103, 32, 86, 97, 108, 117, 101, 32, 49, 2, 8, 0, 0, 0, 127, 195, 99, 45, 66
+                ])
+        )
+        
     }
     
     func testCodingKeys() {
@@ -490,9 +520,93 @@ public struct CryptoData: SecureData, Codable {
     /// Initializes with a random value.
     public init() {
         
-        self.data = Data(repeating: 0xFF, count: type(of: self).length) // no really random
+        self.data = Data(repeating: 0xFF, count: type(of: self).length) // not really random
     }
 }
+
+struct CustomEncodableArray: Equatable {
+    
+    var elements: [Element]
+}
+
+extension CustomEncodableArray {
+    
+    enum Element: Equatable {
+        case value(Value)
+        case pendingValue(PendingValue)
+    }
+    
+    struct Value: Codable, Equatable {
+        let identifier: UUID
+        let name: String
+    }
+    
+    struct PendingValue: Codable, Equatable {
+        let identifier: UUID
+        let name: String
+        let expiration: Date
+    }
+    
+    enum ValueType: UInt8, Codable {
+        case value
+        case pendingValue
+    }
+}
+
+extension CustomEncodableArray.Element: Codable {
+    
+    private enum CodingKeys: UInt8, TLVCodingKey, CaseIterable {
+        
+        case type = 0x00
+        case value = 0x01
+        
+        var stringValue: String {
+            switch self {
+            case .type: return "type"
+            case .value: return "value"
+            }
+        }
+    }
+    
+    public init(from decoder: Decoder) throws {
+        
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(CustomEncodableArray.ValueType.self, forKey: .type)
+        switch type {
+        case .value:
+            let value = try container.decode(CustomEncodableArray.Value.self, forKey: .value)
+            self = .value(value)
+        case .pendingValue:
+            let pendingValue = try container.decode(CustomEncodableArray.PendingValue.self, forKey: .value)
+            self = .pendingValue(pendingValue)
+        }
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .value(value):
+            try container.encode(CustomEncodableArray.ValueType.value, forKey: .type)
+            try container.encode(value, forKey: .value)
+        case let .pendingValue(pendingValue):
+            try container.encode(CustomEncodableArray.ValueType.pendingValue, forKey: .type)
+            try container.encode(pendingValue, forKey: .value)
+        }
+    }
+}
+
+extension CustomEncodableArray: Codable {
+    
+    public init(from decoder: Decoder) throws {
+        self.elements = try .init(from: decoder)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        try elements.encode(to: encoder)
+    }
+}
+
 
 #if swift(>=4.2)
 #else
