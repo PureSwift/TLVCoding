@@ -44,7 +44,6 @@ public struct TLVEncoder {
         assert(encoder.stack.containers.count == 1)
         
         guard case let .items(container) = encoder.stack.root else {
-            
             throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Top-level \(T.self) is not encoded as items."))
         }
         
@@ -276,7 +275,6 @@ internal extension TLVEncoder.Encoder {
         }
     }
 }
-
 
 // MARK: - KeyedEncodingContainerProtocol
 
