@@ -40,7 +40,6 @@ public extension TLVCodingKey where Self: RawRepresentable, Self.RawValue == TLV
     }
 }
 
-#if swift(>=4.2)
 public extension TLVCodingKey where Self: CaseIterable, Self: RawRepresentable, Self.RawValue == TLVTypeCode.RawValue {
     
     init?(stringValue: String) {
@@ -51,7 +50,6 @@ public extension TLVCodingKey where Self: CaseIterable, Self: RawRepresentable, 
         self = value
     }
 }
-#endif
 
 internal extension TLVTypeCode {
     
@@ -98,21 +96,11 @@ internal extension CodingKey {
     static var sanitizedName: String {
         
         let rawName = String(reflecting: self)
-        #if swift(>=5.0)
         var elements = rawName.split(separator: ".")
-        #else
-        var elements = rawName.components(separatedBy: ".")
-        #endif
         guard elements.count > 2
             else { return rawName }
         elements.removeFirst()
-        #if swift(>=5.0)
         elements.removeAll { $0.contains("(unknown context") }
-        #else
-        while let index = elements.index(where: { $0.contains("(unknown context") }) {
-            elements.remove(at: index)
-        }
-        #endif
         return elements.reduce("", { $0 + ($0.isEmpty ? "" : ".") + $1 })
     }
 }

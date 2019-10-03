@@ -594,12 +594,7 @@ private extension TLVEncodable {
     
     var copyingBytes: Data {
         
-        #if swift(>=5)
         return withUnsafePointer(to: self, { Data(bytes: $0, count: MemoryLayout<Self>.size) })
-        #else
-        var copy = self
-        return withUnsafePointer(to: &copy, { Data(bytes: $0, count: MemoryLayout<Self>.size) })
-        #endif
     }
 }
 

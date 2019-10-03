@@ -296,22 +296,6 @@ extension ProvisioningState.CodingKeys {
     }
 }
 
-#if swift(>=4.2)
-#else
-extension ProvisioningState.CodingKeys {
-    
-    static let allCases: Set<ProvisioningState.CodingKeys> = [.state, .result]
-    
-    init?(stringValue: String) {
-        
-        guard let value = type(of: self).allCases.first(where: { $0.stringValue == stringValue })
-            else { return nil }
-        
-        self = value
-    }
-}
-#endif
-
 public struct Profile: Codable, Equatable {
     
     public var person: Person
@@ -420,11 +404,6 @@ public extension DeviceInformation {
         case bluetooth  = 0b001
         case camera     = 0b010
         case gps        = 0b100
-        
-        #if swift(>=4.2)
-        #else
-        public static let allCases: Set<DeviceInformation.Feature> = [.bluetooth, .camera, .gps]
-        #endif
     }
 }
 
@@ -607,25 +586,6 @@ extension CustomEncodableArray: Codable {
     }
 }
 
-
-#if swift(>=4.2)
-#else
-/// A type that provides a collection of all of its values.
-///
-/// Types that conform to the `CaseIterable` protocol are typically
-/// enumerations without associated values. When using a `CaseIterable` type,
-/// you can access a collection of all of the type's cases by using the type's
-/// `allCases` property.
-public protocol CaseIterable {
-    
-    /// A type that can represent a collection of all values of this type.
-    associatedtype AllCases: Collection where Self.AllCases.Element == Self
-    
-    /// A collection of all values of this type.
-    static var allCases: Self.AllCases { get }
-}
-#endif
-
 /// Enum that represents a bit mask flag / option.
 ///
 /// Basically `Swift.OptionSet` for enums.
@@ -763,15 +723,9 @@ extension BitMaskOptionSet: CustomStringConvertible {
 
 extension BitMaskOptionSet: Hashable {
     
-    #if swift(>=4.2)
     public func hash(into hasher: inout Hasher) {
         rawValue.hash(into: &hasher)
     }
-    #else
-    public var hashValue: Int {
-        return rawValue.hashValue
-    }
-    #endif
 }
 
 extension BitMaskOptionSet: ExpressibleByArrayLiteral {
