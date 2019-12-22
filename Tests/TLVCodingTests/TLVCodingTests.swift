@@ -190,8 +190,7 @@ final class TLVCodingTests: XCTestCase {
             Data([
                 0, 32, 0, 1, 0, 1, 27, 0, 16, 184, 61, 214, 244, 164, 41, 65, 179, 148, 90, 62, 14, 229, 145, 92, 161, 1, 7, 86, 97, 108, 117, 101, 32, 49,
                 1, 32, 0, 1, 0, 1, 27, 0, 16, 184, 61, 214, 244, 164, 41, 65, 179, 148, 90, 62, 14, 229, 145, 92, 162, 1, 7, 86, 97, 108, 117, 101, 32, 50,
-                2, 50, 0, 1, 1, 1, 45, 0, 16, 184, 61, 214, 244, 164, 41, 65, 179, 148, 90, 62, 14, 229, 145, 92, 163, 1, 15, 80, 101, 110, 100, 105, 110, 103, 32, 86, 97, 108, 117, 101, 32, 49, 2, 8, 0, 0, 0, 127, 195, 99, 45, 66
-                ])
+                2, 50, 0, 1, 1, 1, 45, 0, 16, 184, 61, 214, 244, 164, 41, 65, 179, 148, 90, 62, 14, 229, 145, 92, 163, 1, 15, 80, 101, 110, 100, 105, 110, 103, 32, 86, 97, 108, 117, 101, 32, 49, 2, 8, 0, 0, 0, 16, 99, 216, 45, 66])
         )
         
     }
@@ -216,7 +215,8 @@ final class TLVCodingTests: XCTestCase {
             let value = CustomEncodable(
                 data: nil,
                 uuid: UUID(),
-                number: nil
+                number: nil,
+                date: nil
             )
             
             var encodedData = Data()
@@ -233,6 +233,56 @@ final class TLVCodingTests: XCTestCase {
             
             var decoder = TLVDecoder()
             decoder.uuidFormat = format
+            decoder.log = { print("Decoder:", $0) }
+            do {
+                let decodedValue = try decoder.decode(CustomEncodable.self, from: encodedData)
+                XCTAssertEqual(decodedValue, value)
+            } catch {
+                dump(error)
+                XCTFail("Could not decode \(value)")
+            }
+        }
+    }
+    
+    func testDate() {
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+        dateFormatter.calendar = Calendar(identifier: .gregorian)
+        dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        
+        var formats: [TLVDateFormat] = [.secondsSince1970, .millisecondsSince1970, .formatted(dateFormatter)]
+        
+        if #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *) {
+            formats.append(.iso8601)
+        }
+        
+        let date = Date(timeIntervalSince1970: 60 * 60 * 24 * 365)
+        
+        for format in formats {
+            
+            let value = CustomEncodable(
+                data: nil,
+                uuid: nil,
+                number: nil,
+                date: date
+            )
+            
+            var encodedData = Data()
+            var encoder = TLVEncoder()
+            encoder.dateFormat = format
+            encoder.log = { print("Encoder:", $0) }
+            do {
+                encodedData = try encoder.encode(value)
+            } catch {
+                dump(error)
+                XCTFail("Could not encode \(value)")
+                return
+            }
+            
+            var decoder = TLVDecoder()
+            decoder.dateFormat = format
             decoder.log = { print("Decoder:", $0) }
             do {
                 let decodedValue = try decoder.decode(CustomEncodable.self, from: encodedData)
@@ -358,6 +408,7 @@ public struct CustomEncodable: Codable, Equatable {
     public var data: Data?
     public var uuid: UUID?
     public var number: TLVCodableNumber?
+    public var date: Date?
 }
 
 public struct DeviceInformation: Equatable, Codable {
