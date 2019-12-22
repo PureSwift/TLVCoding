@@ -12,10 +12,12 @@ import XCTest
 
 final class TLVCodingTests: XCTestCase {
     
-    static var allTests = [
+    static let allTests = [
         ("testCodable", testCodable),
         ("testCodingKeys", testCodingKeys),
-        ("testUUID", testUUID)
+        ("testUUID", testUUID),
+        ("testDate", testDate),
+        ("testDateSecondsSince1970", testDateSecondsSince1970)
     ]
     
     func testCodable() {
@@ -293,6 +295,28 @@ final class TLVCodingTests: XCTestCase {
             }
         }
     }
+    
+    func testDateSecondsSince1970() {
+        
+        let date = Date(timeIntervalSince1970: 60 * 60 * 24 * 365)
+        
+        let value = Transaction(
+            id: UUID(),
+            date: date,
+            description: "Test"
+        )
+        
+        let rawValue = TransactionRaw(
+            id: value.id,
+            date: value.date.timeIntervalSince1970,
+            description: value.description
+        )
+        
+        var encoder = TLVEncoder()
+        encoder.dateFormat = .secondsSince1970
+        encoder.log = { print("Encoder:", $0) }
+        XCTAssertEqual(try encoder.encode(value), try encoder.encode(rawValue))
+    }
 }
 
 // MARK: - Supporting Types
@@ -307,6 +331,20 @@ public enum Gender: UInt8, Codable {
     
     case male
     case female
+}
+
+public struct Transaction: Equatable, Codable {
+    
+    public let id: UUID
+    public let date: Date
+    public let description: String
+}
+
+public struct TransactionRaw: Equatable, Codable {
+    
+    public let id: UUID
+    public let date: Double
+    public let description: String
 }
 
 public struct ProvisioningState: Codable, Equatable {
