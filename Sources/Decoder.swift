@@ -25,6 +25,9 @@ public struct TLVDecoder {
     /// Format for UUID values.
     public var uuidFormat: TLVUUIDFormat = .bytes
     
+    /// Format for Date values.
+    public var dateFormat: TLVDateFormat = .secondsSince1970
+    
     // MARK: - Initialization
     
     public init() { }
@@ -39,7 +42,8 @@ public struct TLVDecoder {
         
         let options = Decoder.Options(
             numericFormat: numericFormat,
-            uuidFormat: uuidFormat
+            uuidFormat: uuidFormat,
+            dateFormat: dateFormat
         )
         
         let decoder = Decoder(referencing: .items(items),
@@ -226,7 +230,7 @@ internal extension TLVDecoder.Decoder {
 
 internal extension TLVDecoder.Decoder {
     
-    func unbox <T: TLVDecodable> (_ data: Data, as type: T.Type) throws -> T {
+    func unbox <T: TLVRawDecodable> (_ data: Data, as type: T.Type) throws -> T {
         
         guard let value = T.init(tlvData: data) else {
             
@@ -236,7 +240,7 @@ internal extension TLVDecoder.Decoder {
         return value
     }
     
-    func unboxNumeric <T: TLVDecodable & FixedWidthInteger> (_ data: Data, as type: T.Type) throws -> T {
+    func unboxNumeric <T: TLVRawDecodable & FixedWidthInteger> (_ data: Data, as type: T.Type) throws -> T {
         
         var numericValue = try unbox(data, as: type)
         switch options.numericFormat {
@@ -248,6 +252,16 @@ internal extension TLVDecoder.Decoder {
         return numericValue
     }
     
+    func unboxDouble(_ data: Data) throws -> Double {
+        let bitPattern = try unboxNumeric(data, as: UInt64.self)
+        return Double(bitPattern: bitPattern)
+    }
+    
+    func unboxFloat(_ data: Data) throws -> Float {
+        let bitPattern = try unboxNumeric(data, as: UInt32.self)
+        return Float(bitPattern: bitPattern)
+    }
+    
     /// Attempt to decode native value to expected type.
     func unboxDecodable <T: Decodable> (_ item: TLVItem, as type: T.Type) throws -> T {
         
@@ -256,6 +270,8 @@ internal extension TLVDecoder.Decoder {
             return item.value as! T // In this case T is Data
         } else if type == UUID.self {
             return try unboxUUID(item.value) as! T
+        } else if type == Date.self {
+            return try unboxDate(item.value) as! T
         } else if let tlvCodable = type as? TLVCodable.Type {
             guard let value = tlvCodable.init(tlvData: item.value) else {
                 throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Invalid data for \(String(reflecting: type))"))
@@ -269,8 +285,11 @@ internal extension TLVDecoder.Decoder {
             return decoded
         }
     }
+}
+
+private extension TLVDecoder.Decoder {
     
-    private func unboxUUID(_ data: Data) throws -> UUID {
+    func unboxUUID(_ data: Data) throws -> UUID {
         
         switch options.uuidFormat {
         case .bytes:
@@ -287,6 +306,33 @@ internal extension TLVDecoder.Decoder {
             }
             return uuid
         }
+    }
+    
+    func unboxDate(_ data: Data) throws -> Date {
+        
+        switch options.dateFormat {
+        case .secondsSince1970:
+            let timeInterval = try unboxDouble(data)
+            return Date(timeIntervalSince1970: timeInterval)
+        case .millisecondsSince1970:
+            let timeInterval = try unboxDouble(data)
+            return Date(timeIntervalSince1970: timeInterval / 1000)
+        case .iso8601:
+            guard #available(OSX 10.12, *)
+                else { fatalError("ISO8601DateFormatter is unavailable on this platform.") }
+            return try unboxDate(data, using: TLVDateFormat.iso8601Formatter)
+        case let .formatted(formatter):
+            return try unboxDate(data, using: formatter)
+        }
+    }
+    
+    @inline(__always)
+    func unboxDate <T: DateFormatterProtocol> (_ data: Data, using formatter: T) throws -> Date {
+        let string = try unbox(data, as: String.self)
+        guard let date = formatter.date(from: string) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Invalid Date string \(string)"))
+        }
+        return date
     }
 }
 
@@ -489,12 +535,12 @@ internal struct TLVKeyedDecodingContainer <K: CodingKey> : KeyedDecodingContaine
     // MARK: Private Methods
     
     /// Decode native value type from TLV data.
-    private func decodeTLV <T: TLVDecodable> (_ type: T.Type, forKey key: Key) throws -> T {
+    private func decodeTLV <T: TLVRawDecodable> (_ type: T.Type, forKey key: Key) throws -> T {
         
         return try self.value(for: key, type: type) { try decoder.unbox($0.value, as: type) }
     }
     
-    private func decodeNumeric <T: TLVDecodable & FixedWidthInteger> (_ type: T.Type, forKey key: Key) throws -> T {
+    private func decodeNumeric <T: TLVRawDecodable & FixedWidthInteger> (_ type: T.Type, forKey key: Key) throws -> T {
         
         return try self.value(for: key, type: type) { try decoder.unboxNumeric($0.value, as: type) }
     }
@@ -788,7 +834,13 @@ internal extension TLVUnkeyedDecodingContainer {
 
 // MARK: - Decodable Types
 
-extension String: TLVDecodable {
+/// Private protocol for decoding TLV values into raw data.
+internal protocol TLVRawDecodable {
+    
+    init?(tlvData data: Data)
+}
+
+extension String: TLVRawDecodable {
     
     public init?(tlvData data: Data) {
         
@@ -796,7 +848,7 @@ extension String: TLVDecodable {
     }
 }
 
-extension Bool: TLVDecodable {
+extension Bool: TLVRawDecodable {
     
     public init?(tlvData data: Data) {
         
@@ -807,7 +859,7 @@ extension Bool: TLVDecodable {
     }
 }
 
-extension UInt8: TLVDecodable {
+extension UInt8: TLVRawDecodable {
     
     public init?(tlvData data: Data) {
         
@@ -818,7 +870,7 @@ extension UInt8: TLVDecodable {
     }
 }
 
-extension UInt16: TLVDecodable {
+extension UInt16: TLVRawDecodable {
     
     public init?(tlvData data: Data) {
         
@@ -829,7 +881,7 @@ extension UInt16: TLVDecodable {
     }
 }
 
-extension UInt32: TLVDecodable {
+extension UInt32: TLVRawDecodable {
     
     public init?(tlvData data: Data) {
         
@@ -840,7 +892,7 @@ extension UInt32: TLVDecodable {
     }
 }
 
-extension UInt64: TLVDecodable {
+extension UInt64: TLVRawDecodable {
     
     public init?(tlvData data: Data) {
         
@@ -851,7 +903,7 @@ extension UInt64: TLVDecodable {
     }
 }
 
-extension Int8: TLVDecodable {
+extension Int8: TLVRawDecodable {
     
     public init?(tlvData data: Data) {
         
@@ -862,7 +914,7 @@ extension Int8: TLVDecodable {
     }
 }
 
-extension Int16: TLVDecodable {
+extension Int16: TLVRawDecodable {
     
     public init?(tlvData data: Data) {
         
@@ -873,7 +925,7 @@ extension Int16: TLVDecodable {
     }
 }
 
-extension Int32: TLVDecodable {
+extension Int32: TLVRawDecodable {
     
     public init?(tlvData data: Data) {
         
@@ -884,7 +936,7 @@ extension Int32: TLVDecodable {
     }
 }
 
-extension Int64: TLVDecodable {
+extension Int64: TLVRawDecodable {
     
     public init?(tlvData data: Data) {
         

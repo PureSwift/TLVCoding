@@ -224,25 +224,17 @@ private extension TLVEncoder.Encoder {
         case .millisecondsSince1970:
             return boxDouble(date.timeIntervalSince1970 * 1000)
         case .iso8601:
-            if #available(OSX 10.12, *) {
-                return box(TLVEncoder.Encoder.iso8601Formatter.string(from: date))
-            } else {
-                fatalError("ISO8601DateFormatter is unavailable on this platform.")
-            }
+            guard #available(OSX 10.12, *)
+                else { fatalError("ISO8601DateFormatter is unavailable on this platform.") }
+            return boxDate(date, using: TLVDateFormat.iso8601Formatter)
         case let .formatted(formatter):
-            return box(formatter.string(from: date))
+            return boxDate(date, using: formatter)
         }
     }
-}
-
-internal extension TLVEncoder.Encoder {
     
-    @available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
-    static let iso8601Formatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = .withInternetDateTime
-        return formatter
-    }()
+    func boxDate <T: DateFormatterProtocol> (_ date: Date, using formatter: T) -> Data {
+        return box(formatter.string(from: date))
+    }
 }
 
 // MARK: - Stack

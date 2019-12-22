@@ -47,3 +47,27 @@ internal struct TLVOptions {
     
     let dateFormat: TLVDateFormat
 }
+
+// MARK: - Formatters
+
+internal extension TLVDateFormat {
+    
+    @available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
+    static let iso8601Formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = .withInternetDateTime
+        return formatter
+    }()
+}
+
+internal protocol DateFormatterProtocol: class {
+    
+    func string(from date: Date) -> String
+    
+    func date(from string: String) -> Date?
+}
+
+extension DateFormatter: DateFormatterProtocol { }
+
+@available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
+extension ISO8601DateFormatter: DateFormatterProtocol { }
