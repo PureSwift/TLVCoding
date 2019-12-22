@@ -184,9 +184,6 @@ internal extension TLVEncoder.Encoder {
     
     func boxEncodable <T: Encodable> (_ value: T) throws -> Data {
         
-        // should not call this function
-        assert(value as? TLVRawEncodable == nil, "Should not call this method for native types")
-        
         if let data = value as? Data {
             return data
         } else if let uuid = value as? UUID {
@@ -502,9 +499,9 @@ internal final class TLVSingleValueEncodingContainer: SingleValueEncodingContain
     
     func encode(_ value: String) throws { write(encoder.box(value)) }
     
-    func encode(_ value: Double) throws { write(encoder.boxNumeric(value.bitPattern)) }
+    func encode(_ value: Double) throws { write(encoder.boxDouble(value)) }
     
-    func encode(_ value: Float) throws { write(encoder.boxNumeric(value.bitPattern)) }
+    func encode(_ value: Float) throws { write(encoder.boxFloat(value)) }
     
     func encode(_ value: Int) throws { write(encoder.boxNumeric(Int32(value))) }
     
