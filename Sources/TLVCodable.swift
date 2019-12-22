@@ -12,12 +12,12 @@ import Foundation
 public typealias TLVCodable = TLVEncodable & TLVDecodable
 
 /// TLV Decodable type
-public protocol TLVDecodable {
+public protocol TLVDecodable: Decodable {
     
     init?(tlvData: Data)
 }
 
-public protocol TLVEncodable {
+public protocol TLVEncodable: Encodable {
     
     var tlvData: Data { get }
 }

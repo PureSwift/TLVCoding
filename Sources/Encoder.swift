@@ -25,6 +25,9 @@ public struct TLVEncoder {
     /// Format for UUID values.
     public var uuidFormat: TLVUUIDFormat = .bytes
     
+    /// Format for Date values.
+    public var dateFormat: TLVDateFormat = .secondsSince1970
+    
     // MARK: - Initialization
     
     public init() { }
@@ -37,7 +40,8 @@ public struct TLVEncoder {
         
         let options = Encoder.Options(
             numericFormat: numericFormat,
-            uuidFormat: uuidFormat
+            uuidFormat: uuidFormat,
+            dateFormat: dateFormat
         )
         let encoder = Encoder(userInfo: userInfo, log: log, options: options)
         try value.encode(to: encoder)
@@ -151,12 +155,12 @@ internal extension TLVEncoder.Encoder {
 internal extension TLVEncoder.Encoder {
     
     @inline(__always)
-    func box <T: TLVEncodable> (_ value: T) -> Data {
+    func box <T: TLVRawEncodable> (_ value: T) -> Data {
         return value.tlvData
     }
     
     @inline(__always)
-    func boxNumeric <T: TLVEncodable & FixedWidthInteger> (_ value: T) -> Data {
+    func boxNumeric <T: TLVRawEncodable & FixedWidthInteger> (_ value: T) -> Data {
         
         let numericValue: T
         switch options.numericFormat {
@@ -168,12 +172,24 @@ internal extension TLVEncoder.Encoder {
         return box(numericValue)
     }
     
+    @inline(__always)
+    func boxDouble(_ double: Double) -> Data {
+        return boxNumeric(double.bitPattern)
+    }
+    
+    @inline(__always)
+    func boxFloat(_ float: Float) -> Data {
+        return boxNumeric(float.bitPattern)
+    }
+    
     func boxEncodable <T: Encodable> (_ value: T) throws -> Data {
         
         if let data = value as? Data {
             return data
         } else if let uuid = value as? UUID {
             return boxUUID(uuid)
+        } else if let date = value as? Date {
+            return boxDate(date)
         } else if let tlvEncodable = value as? TLVEncodable {
             return tlvEncodable.tlvData
         } else {
@@ -183,14 +199,38 @@ internal extension TLVEncoder.Encoder {
             return nestedContainer.data
         }
     }
+}
+
+private extension TLVEncoder.Encoder {
     
-    private func boxUUID(_ uuid: UUID) -> Data {
+    func boxUUID(_ uuid: UUID) -> Data {
+        
         switch options.uuidFormat {
         case .bytes:
             return Data(uuid)
         case .string:
             return uuid.uuidString.tlvData
         }
+    }
+    
+    func boxDate(_ date: Date) -> Data {
+        
+        switch options.dateFormat {
+        case .secondsSince1970:
+            return boxDouble(date.timeIntervalSince1970)
+        case .millisecondsSince1970:
+            return boxDouble(date.timeIntervalSince1970 * 1000)
+        case .iso8601:
+            guard #available(OSX 10.12, *)
+                else { fatalError("ISO8601DateFormatter is unavailable on this platform.") }
+            return boxDate(date, using: TLVDateFormat.iso8601Formatter)
+        case let .formatted(formatter):
+            return boxDate(date, using: formatter)
+        }
+    }
+    
+    func boxDate <T: DateFormatterProtocol> (_ date: Date, using formatter: T) -> Data {
+        return box(formatter.string(from: date))
     }
 }
 
@@ -395,7 +435,7 @@ internal final class TLVKeyedContainer <K : CodingKey> : KeyedEncodingContainerP
     
     // MARK: - Private Methods
     
-    private func encodeNumeric <T: TLVEncodable & FixedWidthInteger> (_ value: T, forKey key: K) throws {
+    private func encodeNumeric <T: TLVRawEncodable & FixedWidthInteger> (_ value: T, forKey key: K) throws {
         
         self.encoder.codingPath.append(key)
         defer { self.encoder.codingPath.removeLast() }
@@ -403,7 +443,7 @@ internal final class TLVKeyedContainer <K : CodingKey> : KeyedEncodingContainerP
         try setValue(value, data: data, for: key)
     }
     
-    private func encodeTLV <T: TLVEncodable> (_ value: T, forKey key: K) throws {
+    private func encodeTLV <T: TLVRawEncodable> (_ value: T, forKey key: K) throws {
         
         self.encoder.codingPath.append(key)
         defer { self.encoder.codingPath.removeLast() }
@@ -459,9 +499,9 @@ internal final class TLVSingleValueEncodingContainer: SingleValueEncodingContain
     
     func encode(_ value: String) throws { write(encoder.box(value)) }
     
-    func encode(_ value: Double) throws { write(encoder.boxNumeric(value.bitPattern)) }
+    func encode(_ value: Double) throws { write(encoder.boxDouble(value)) }
     
-    func encode(_ value: Float) throws { write(encoder.boxNumeric(value.bitPattern)) }
+    func encode(_ value: Float) throws { write(encoder.boxFloat(value)) }
     
     func encode(_ value: Int) throws { write(encoder.boxNumeric(Int32(value))) }
     
@@ -590,92 +630,97 @@ internal final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
 
 // MARK: - Data Types
 
-private extension TLVEncodable {
+/// Private protocol for encoding TLV values into raw data.
+internal protocol TLVRawEncodable {
+    
+    var tlvData: Data { get }
+}
+
+private extension TLVRawEncodable {
     
     var copyingBytes: Data {
-        
         return withUnsafePointer(to: self, { Data(bytes: $0, count: MemoryLayout<Self>.size) })
     }
 }
 
-extension UInt8: TLVEncodable {
+extension UInt8: TLVRawEncodable {
     
     public var tlvData: Data {
         return copyingBytes
     }
 }
 
-extension UInt16: TLVEncodable {
+extension UInt16: TLVRawEncodable {
     
     public var tlvData: Data {
         return copyingBytes
     }
 }
 
-extension UInt32: TLVEncodable {
+extension UInt32: TLVRawEncodable {
     
     public var tlvData: Data {
         return copyingBytes
     }
 }
 
-extension UInt64: TLVEncodable {
+extension UInt64: TLVRawEncodable {
     
     public var tlvData: Data {
         return copyingBytes
     }
 }
 
-extension Int8: TLVEncodable {
+extension Int8: TLVRawEncodable {
     
     public var tlvData: Data {
         return copyingBytes
     }
 }
 
-extension Int16: TLVEncodable {
+extension Int16: TLVRawEncodable {
     
     public var tlvData: Data {
         return copyingBytes
     }
 }
 
-extension Int32: TLVEncodable {
+extension Int32: TLVRawEncodable {
     
     public var tlvData: Data {
         return copyingBytes
     }
 }
 
-extension Int64: TLVEncodable {
+extension Int64: TLVRawEncodable {
     
     public var tlvData: Data {
         return copyingBytes
     }
 }
 
-extension Float: TLVEncodable {
+extension Float: TLVRawEncodable {
     
     public var tlvData: Data {
         return bitPattern.copyingBytes
     }
 }
 
-extension Double: TLVEncodable {
+extension Double: TLVRawEncodable {
     
     public var tlvData: Data {
         return bitPattern.copyingBytes
     }
 }
 
-extension Bool: TLVEncodable {
+extension Bool: TLVRawEncodable {
     
     public var tlvData: Data {
         return UInt8(self ? 1 : 0).copyingBytes
     }
 }
 
-extension String: TLVEncodable {
+extension String: TLVRawEncodable {
     
     public var tlvData: Data {
         return Data(self.utf8)
