@@ -6,6 +6,8 @@
 //  Copyright © 2019 PureSwift. All rights reserved.
 //
 
+import Foundation
+
 /// TLV Numeric Encoding Format
 public enum TLVNumericFormat: Equatable, Hashable {
     
@@ -21,22 +23,20 @@ public enum TLVUUIDFormat: Equatable, Hashable {
 }
 
 /// TLV Date Encoding Format
-public enum TLVDateFormat: Equatable, Hashable {
+public enum TLVDateFormat: Equatable {
     
-    /// The strategy that encodes dates in terms of seconds since midnight UTC on January 1, 1970.
+    /// Encodes dates in terms of seconds since midnight UTC on January 1, 1970.
     case secondsSince1970
     
-    /// The strategy that encodes dates in terms of milliseconds since midnight UTC on January 1, 1970.
+    /// Encodes dates in terms of milliseconds since midnight UTC on January 1, 1970.
     case millisecondsSince1970
     
-    /// The strategy that formats dates according to the ISO 8601 and RFC 3339 standards.
+    /// Formats dates according to the ISO 8601 and RFC 3339 standards.
+    @available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
     case iso8601
     
-    /// The strategy that defers formatting settings to a supplied date formatter.
+    /// Defers formatting settings to a supplied date formatter.
     case formatted(DateFormatter)
-    
-    /// The strategy that formats custom dates by calling a user-defined function.
-    case custom((Date, Encoder) -> Void)
 }
 
 internal struct TLVOptions {
