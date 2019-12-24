@@ -17,6 +17,7 @@ public protocol TLVDecodable: Decodable {
     init?(tlvData: Data)
 }
 
+/// TLV Encodable type
 public protocol TLVEncodable: Encodable {
     
     var tlvData: Data { get }
