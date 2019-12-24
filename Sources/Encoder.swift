@@ -327,12 +327,20 @@ internal extension TLVEncoder.Encoder {
     
     final class ItemsContainer {
         
-        var items = [TLVItem]()
+        private(set) var items = [TLVItem]()
         
         init() { }
         
         var data: Data {
             return Data(items)
+        }
+        
+        @inline(__always)
+        func append(_ item: TLVItem, options: Options) {
+            items.append(item)
+            if options.outputFormatting.sortedKeys {
+                items.sort(by: { $0.type.rawValue < $1.type.rawValue })
+            }
         }
     }
     
@@ -504,7 +512,7 @@ internal final class TLVKeyedContainer <K : CodingKey> : KeyedEncodingContainerP
         
         let type = try encoder.typeCode(for: key, value: value)
         let item = TLVItem(type: type, value: data)
-        self.container.items.append(item)
+        self.container.append(item, options: encoder.options)
     }
 }
 
@@ -671,7 +679,7 @@ internal final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
         let item = TLVItem(type: index, value: data)
         
         // write
-        self.container.items.append(item)
+        self.container.append(item, options: encoder.options)
     }
 }
 
