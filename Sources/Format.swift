@@ -10,6 +10,21 @@ import Foundation
 
 /// TLV Numeric Encoding Format
 public enum TLVNumericFormat: Equatable, Hashable {
+/// The output formatting options that determine the readability, size, and element order of an encoded TLV object.
+public struct TLVOutputFormatting: Equatable, Hashable {
+    
+    /// The output formatting option that sorts keys in numerical order.
+    public var sortedKeys: Bool
+}
+
+public extension TLVOutputFormatting {
+    
+    /// The default TLV output formatting options.
+    static var `default`: TLVOutputFormatting {
+        return .init(sortedKeys: true)
+    }
+}
+
     
     case bigEndian
     case littleEndian

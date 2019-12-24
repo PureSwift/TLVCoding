@@ -21,6 +21,7 @@ public struct TLVEncoder {
     
     /// Format for numeric values.
     public var numericFormat: TLVNumericFormat = .littleEndian
+    public var outputFormatting: TLVOutputFormatting = .default
     
     /// Format for UUID values.
     public var uuidFormat: TLVUUIDFormat = .bytes
