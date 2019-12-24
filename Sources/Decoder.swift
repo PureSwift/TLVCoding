@@ -110,6 +110,29 @@ public struct TLVDecoder {
     }
 }
 
+// MARK: - Deprecated
+
+public extension TLVDecoder {
+    
+    @available(*, deprecated, message: "Renamed to numericFormatting")
+    var numericFormat: TLVNumericFormat {
+        get { return numericFormatting }
+        set { numericFormatting = newValue }
+    }
+    
+    @available(*, deprecated, message: "Renamed to uuidFormatting")
+    var uuidFormat: TLVUUIDFormat {
+        get { return uuidFormatting }
+        set { uuidFormatting = newValue }
+    }
+    
+    @available(*, deprecated, message: "Renamed to dateFormatting")
+    var dateFormat: TLVDateFormat {
+        get { return dateFormatting }
+        set { dateFormatting = newValue }
+    }
+}
+
 internal extension TLVDecoder {
     
     final class Decoder: Swift.Decoder {
