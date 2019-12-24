@@ -133,6 +133,16 @@ public extension TLVDecoder {
     }
 }
 
+// MARK: - Combine
+
+#if canImport(Combine)
+import Combine
+
+extension TLVDecoder: TopLevelDecoder { }
+#endif
+
+// MARK: - Decoder
+
 internal extension TLVDecoder {
     
     final class Decoder: Swift.Decoder {
