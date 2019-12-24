@@ -20,13 +20,13 @@ public struct TLVDecoder {
     public var log: ((String) -> ())?
     
     /// Format for numeric values.
-    public var numericFormat: TLVNumericFormatting = .littleEndian
+    public var numericFormatting: TLVNumericFormatting = .default
     
     /// Format for UUID values.
-    public var uuidFormat: TLVUUIDFormatting = .bytes
+    public var uuidFormatting: TLVUUIDFormatting = .default
     
     /// Format for Date values.
-    public var dateFormat: TLVDateFormatting = .secondsSince1970
+    public var dateFormatting: TLVDateFormatting = .default
     
     // MARK: - Initialization
     
@@ -41,9 +41,9 @@ public struct TLVDecoder {
         let items = try decode(data)
         
         let options = Decoder.Options(
-            numericFormat: numericFormat,
-            uuidFormat: uuidFormat,
-            dateFormat: dateFormat
+            numericFormatting: numericFormatting,
+            uuidFormatting: uuidFormatting,
+            dateFormatting: dateFormatting
         )
         
         let decoder = Decoder(referencing: .items(items),
@@ -241,11 +241,11 @@ internal extension TLVDecoder.Decoder {
     
     struct Options {
         
-        let numericFormat: TLVNumericFormatting
+        let numericFormatting: TLVNumericFormatting
         
-        let uuidFormat: TLVUUIDFormatting
+        let uuidFormatting: TLVUUIDFormatting
         
-        let dateFormat: TLVDateFormatting
+        let dateFormatting: TLVDateFormatting
     }
 }
 
@@ -283,7 +283,7 @@ internal extension TLVDecoder.Decoder {
     func unboxNumeric <T: TLVRawDecodable & FixedWidthInteger> (_ data: Data, as type: T.Type) throws -> T {
         
         var numericValue = try unbox(data, as: type)
-        switch options.numericFormat {
+        switch options.numericFormatting {
         case .bigEndian:
             numericValue = T.init(bigEndian: numericValue)
         case .littleEndian:
@@ -331,7 +331,7 @@ private extension TLVDecoder.Decoder {
     
     func unboxUUID(_ data: Data) throws -> UUID {
         
-        switch options.uuidFormat {
+        switch options.uuidFormatting {
         case .bytes:
             guard data.count == MemoryLayout<uuid_t>.size else {
                 throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Invalud number of bytes (\(data.count)) for UUID"))
@@ -350,7 +350,7 @@ private extension TLVDecoder.Decoder {
     
     func unboxDate(_ data: Data) throws -> Date {
         
-        switch options.dateFormat {
+        switch options.dateFormatting {
         case .secondsSince1970:
             let timeInterval = try unboxDouble(data)
             return Date(timeIntervalSince1970: timeInterval)

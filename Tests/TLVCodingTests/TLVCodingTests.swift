@@ -234,7 +234,7 @@ final class TLVCodingTests: XCTestCase {
             }
             
             var decoder = TLVDecoder()
-            decoder.uuidFormat = format
+            decoder.uuidFormatting = format
             decoder.log = { print("Decoder:", $0) }
             do {
                 let decodedValue = try decoder.decode(CustomEncodable.self, from: encodedData)
@@ -284,7 +284,7 @@ final class TLVCodingTests: XCTestCase {
             }
             
             var decoder = TLVDecoder()
-            decoder.dateFormat = format
+            decoder.dateFormatting = format
             decoder.log = { print("Decoder:", $0) }
             do {
                 let decodedValue = try decoder.decode(CustomEncodable.self, from: encodedData)
