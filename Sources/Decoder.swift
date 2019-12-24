@@ -318,7 +318,7 @@ private extension TLVDecoder.Decoder {
             let timeInterval = try unboxDouble(data)
             return Date(timeIntervalSince1970: timeInterval / 1000)
         case .iso8601:
-            guard #available(OSX 10.12, *)
+            guard #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
                 else { fatalError("ISO8601DateFormatter is unavailable on this platform.") }
             return try unboxDate(data, using: TLVDateFormat.iso8601Formatter)
         case let .formatted(formatter):
