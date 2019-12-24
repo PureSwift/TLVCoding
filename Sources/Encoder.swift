@@ -20,14 +20,16 @@ public struct TLVEncoder {
     public var log: ((String) -> ())?
     
     /// Format for numeric values.
-    public var numericFormat: TLVNumericFormat = .littleEndian
     public var outputFormatting: TLVOutputFormatting = .default
     
+    /// Format for numeric values.
+    public var numericFormatting: TLVNumericFormatting = .default
+    
     /// Format for UUID values.
-    public var uuidFormat: TLVUUIDFormat = .bytes
+    public var uuidFormatting: TLVUUIDFormatting = .default
     
     /// Format for Date values.
-    public var dateFormat: TLVDateFormat = .secondsSince1970
+    public var dateFormatting: TLVDateFormatting = .default
     
     // MARK: - Initialization
     
@@ -40,10 +42,12 @@ public struct TLVEncoder {
         log?("Will encode \(String(reflecting: T.self))")
         
         let options = Encoder.Options(
-            numericFormat: numericFormat,
-            uuidFormat: uuidFormat,
-            dateFormat: dateFormat
+            outputFormatting: outputFormatting,
+            numericFormatting: numericFormatting,
+            uuidFormatting: uuidFormatting,
+            dateFormatting: dateFormatting
         )
+        
         let encoder = Encoder(userInfo: userInfo, log: log, options: options)
         try value.encode(to: encoder)
         assert(encoder.stack.containers.count == 1)
@@ -63,6 +67,39 @@ public struct TLVEncoder {
         return Data(items)
     }
 }
+
+// MARK: - Deprecated
+
+public extension TLVEncoder {
+    
+    @available(*, deprecated, message: "Renamed to numericFormatting")
+    var numericFormat: TLVNumericFormat {
+        get { return numericFormatting }
+        set { numericFormatting = newValue }
+    }
+    
+    @available(*, deprecated, message: "Renamed to uuidFormatting")
+    var uuidFormat: TLVUUIDFormat {
+        get { return uuidFormatting }
+        set { uuidFormatting = newValue }
+    }
+    
+    @available(*, deprecated, message: "Renamed to dateFormatting")
+    var dateFormat: TLVDateFormat {
+        get { return dateFormatting }
+        set { dateFormatting = newValue }
+    }
+}
+
+// MARK: - Combine
+
+#if canImport(Combine)
+import Combine
+
+extension TLVEncoder: TopLevelEncoder { }
+#endif
+
+// MARK: - Encoder
 
 internal extension TLVEncoder {
     
@@ -135,7 +172,16 @@ internal extension TLVEncoder {
 
 internal extension TLVEncoder.Encoder {
     
-    typealias Options = TLVOptions
+    struct Options {
+        
+        public let outputFormatting: TLVOutputFormatting
+        
+        public let numericFormatting: TLVNumericFormatting
+        
+        public let uuidFormatting: TLVUUIDFormatting
+        
+        public let dateFormatting: TLVDateFormatting
+    }
 }
 
 internal extension TLVEncoder.Encoder {
@@ -164,7 +210,7 @@ internal extension TLVEncoder.Encoder {
     func boxNumeric <T: TLVRawEncodable & FixedWidthInteger> (_ value: T) -> Data {
         
         let numericValue: T
-        switch options.numericFormat {
+        switch options.numericFormatting {
         case .bigEndian:
             numericValue = value.bigEndian
         case .littleEndian:
@@ -206,7 +252,7 @@ private extension TLVEncoder.Encoder {
     
     func boxUUID(_ uuid: UUID) -> Data {
         
-        switch options.uuidFormat {
+        switch options.uuidFormatting {
         case .bytes:
             return Data(uuid)
         case .string:
@@ -216,7 +262,7 @@ private extension TLVEncoder.Encoder {
     
     func boxDate(_ date: Date) -> Data {
         
-        switch options.dateFormat {
+        switch options.dateFormatting {
         case .secondsSince1970:
             return boxDouble(date.timeIntervalSince1970)
         case .millisecondsSince1970:
@@ -224,7 +270,7 @@ private extension TLVEncoder.Encoder {
         case .iso8601:
             guard #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
                 else { fatalError("ISO8601DateFormatter is unavailable on this platform.") }
-            return boxDate(date, using: TLVDateFormat.iso8601Formatter)
+            return boxDate(date, using: TLVDateFormatting.iso8601Formatter)
         case let .formatted(formatter):
             return boxDate(date, using: formatter)
         }

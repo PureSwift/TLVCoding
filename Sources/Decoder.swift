@@ -20,13 +20,13 @@ public struct TLVDecoder {
     public var log: ((String) -> ())?
     
     /// Format for numeric values.
-    public var numericFormat: TLVNumericFormat = .littleEndian
+    public var numericFormat: TLVNumericFormatting = .littleEndian
     
     /// Format for UUID values.
-    public var uuidFormat: TLVUUIDFormat = .bytes
+    public var uuidFormat: TLVUUIDFormatting = .bytes
     
     /// Format for Date values.
-    public var dateFormat: TLVDateFormat = .secondsSince1970
+    public var dateFormat: TLVDateFormatting = .secondsSince1970
     
     // MARK: - Initialization
     
@@ -206,7 +206,14 @@ internal extension TLVDecoder {
 
 internal extension TLVDecoder.Decoder {
     
-    typealias Options = TLVOptions
+    struct Options {
+        
+        let numericFormat: TLVNumericFormatting
+        
+        let uuidFormat: TLVUUIDFormatting
+        
+        let dateFormat: TLVDateFormatting
+    }
 }
 
 // MARK: - Coding Key
@@ -320,7 +327,7 @@ private extension TLVDecoder.Decoder {
         case .iso8601:
             guard #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
                 else { fatalError("ISO8601DateFormatter is unavailable on this platform.") }
-            return try unboxDate(data, using: TLVDateFormat.iso8601Formatter)
+            return try unboxDate(data, using: TLVDateFormatting.iso8601Formatter)
         case let .formatted(formatter):
             return try unboxDate(data, using: formatter)
         }

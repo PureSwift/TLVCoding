@@ -210,7 +210,7 @@ final class TLVCodingTests: XCTestCase {
     
     func testUUID() {
         
-        let formats: [TLVUUIDFormat] = [.bytes, .string]
+        let formats: [TLVUUIDFormatting] = [.bytes, .string]
         
         for format in formats {
             
@@ -223,7 +223,7 @@ final class TLVCodingTests: XCTestCase {
             
             var encodedData = Data()
             var encoder = TLVEncoder()
-            encoder.uuidFormat = format
+            encoder.uuidFormatting = format
             encoder.log = { print("Encoder:", $0) }
             do {
                 encodedData = try encoder.encode(value)
@@ -254,7 +254,7 @@ final class TLVCodingTests: XCTestCase {
         dateFormatter.calendar = Calendar(identifier: .gregorian)
         dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
         
-        var formats: [TLVDateFormat] = [.secondsSince1970, .millisecondsSince1970, .formatted(dateFormatter)]
+        var formats: [TLVDateFormatting] = [.secondsSince1970, .millisecondsSince1970, .formatted(dateFormatter)]
         
         if #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *) {
             formats.append(.iso8601)
@@ -273,7 +273,7 @@ final class TLVCodingTests: XCTestCase {
             
             var encodedData = Data()
             var encoder = TLVEncoder()
-            encoder.dateFormat = format
+            encoder.dateFormatting = format
             encoder.log = { print("Encoder:", $0) }
             do {
                 encodedData = try encoder.encode(value)
@@ -313,7 +313,7 @@ final class TLVCodingTests: XCTestCase {
         )
         
         var encoder = TLVEncoder()
-        encoder.dateFormat = .secondsSince1970
+        encoder.dateFormatting = .secondsSince1970
         encoder.log = { print("Encoder:", $0) }
         XCTAssertEqual(try encoder.encode(value), try encoder.encode(rawValue))
     }
