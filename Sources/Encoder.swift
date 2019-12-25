@@ -342,6 +342,11 @@ internal extension TLVEncoder.Encoder {
                 items.sort(by: { $0.type.rawValue < $1.type.rawValue })
             }
         }
+        
+        @inline(__always)
+        fileprivate func append(_ item: TLVItem) {
+            items.append(item)
+        }
     }
     
     final class ItemContainer {
@@ -679,7 +684,7 @@ internal final class TLVUnkeyedEncodingContainer: UnkeyedEncodingContainer {
         let item = TLVItem(type: index, value: data)
         
         // write
-        self.container.append(item, options: encoder.options)
+        self.container.append(item) // already sorted
     }
 }
 
