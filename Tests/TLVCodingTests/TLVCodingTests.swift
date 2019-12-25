@@ -18,70 +18,35 @@ final class TLVCodingTests: XCTestCase {
         ("testUUID", testUUID),
         ("testDate", testDate),
         ("testDateSecondsSince1970", testDateSecondsSince1970),
-        ("testOutputFormatting", testOutputFormatting)
+        ("testOutputFormatting", testOutputFormatting),
+        ("testNil", testNil)
     ]
     
     func testCodable() {
         
-        func test <T: Codable & Equatable> (_ value: T, _ data: Data, shouldFail: Bool = false) {
-            
-            var didFail = false
-            var encoder = TLVEncoder()
-            encoder.log = { print("Encoder:", $0) }
-            do {
-                let encodedData = try encoder.encode(value)
-                if shouldFail == false {
-                    XCTAssertEqual(encodedData, data, "Invalid data \(Array(encodedData))")
-                }
-            } catch {
-                dump(error)
-                if shouldFail == false {
-                    XCTFail("Could not encode \(value)")
-                }
-                didFail = true
-            }
-            
-            var decoder = TLVDecoder()
-            decoder.log = { print("Decoder:", $0) }
-            do {
-                let decodedValue = try decoder.decode(T.self, from: data)
-                XCTAssertEqual(decodedValue, value)
-            } catch {
-                dump(error)
-                if shouldFail == false {
-                    XCTFail("Could not decode \(value)")
-                }
-                didFail = true
-            }
-            
-            if shouldFail {
-                XCTAssert(didFail, "No error thrown")
-            }
-        }
-        
-        test(Person(gender: .male, name: "Coleman"),
+        compare(Person(gender: .male, name: "Coleman"),
             Data([0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110]))
         
-        test(Person(gender: .male, name: "Coleman"),
+        compare(Person(gender: .male, name: "Coleman"),
              Data([0, 1]),
              shouldFail: true
         )
         
-        test(Person(gender: .male, name: "Coleman"),
+        compare(Person(gender: .male, name: "Coleman"),
              Data([0, 2, 0]),
              shouldFail: true
         )
         
-        test(Person(gender: .male, name: ""),
+        compare(Person(gender: .male, name: ""),
              Data([0, 1, 0, 1, 0]))
         
-        test(ProvisioningState(state: .idle, result: .notAvailible),
+        compare(ProvisioningState(state: .idle, result: .notAvailible),
             Data([0x01, 0x01, 0x00, 0x02, 0x01, 0x00]))
         
-        test(ProvisioningState(state: .provisioning, result: .notAvailible),
+        compare(ProvisioningState(state: .provisioning, result: .notAvailible),
             Data([0x01, 0x01, 0x01, 0x02, 0x01, 0x00]))
         
-        test(Numeric(
+        compare(Numeric(
             boolean: true,
             int: -10,
             uint: 10,
@@ -97,7 +62,7 @@ final class TLVCodingTests: XCTestCase {
             uint64: 30_000),
              Data([0, 1, 1, 1, 4, 246, 255, 255, 255, 2, 4, 10, 0, 0, 0, 3, 4, 146, 203, 143, 63, 4, 8, 114, 138, 142, 228, 242, 255, 37, 64, 5, 1, 127, 6, 2, 56, 255, 7, 4, 48, 248, 255, 255, 8, 8, 224, 177, 255, 255, 255, 255, 255, 255, 9, 1, 255, 10, 2, 44, 1, 11, 4, 184, 11, 0, 0, 12, 8, 48, 117, 0, 0, 0, 0, 0, 0]))
         
-        test(
+        compare(
             CustomEncodable(
                 data: nil,
                 uuid: nil,
@@ -107,7 +72,7 @@ final class TLVCodingTests: XCTestCase {
             Data([])
         )
         
-        test(
+        compare(
             Profile(
                 person: Person(
                     gender: .male,
@@ -124,7 +89,7 @@ final class TLVCodingTests: XCTestCase {
                   1, 14, 0, 12, 0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110])
         )
         
-        test(
+        compare(
             Profile(
                 person: Person(
                     gender: .male,
@@ -168,7 +133,7 @@ final class TLVCodingTests: XCTestCase {
                 ])
         )
         
-        test(
+        compare(
             Binary(
                 data: Data([0x01, 0x02, 0x03, 0x04]),
                 value: .one
@@ -176,7 +141,7 @@ final class TLVCodingTests: XCTestCase {
             Data([0, 4, 1, 2, 3, 4, 1, 2, 1, 0])
         )
         
-        test(
+        compare(
             PrimitiveArray(
                 strings: ["1", "two", "three", ""],
                 integers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -184,7 +149,7 @@ final class TLVCodingTests: XCTestCase {
             Data([0, 17, 0, 1, 49, 1, 3, 116, 119, 111, 2, 5, 116, 104, 114, 101, 101, 3, 0, 1, 60, 0, 4, 1, 0, 0, 0, 1, 4, 2, 0, 0, 0, 2, 4, 3, 0, 0, 0, 3, 4, 4, 0, 0, 0, 4, 4, 5, 0, 0, 0, 5, 4, 6, 0, 0, 0, 6, 4, 7, 0, 0, 0, 7, 4, 8, 0, 0, 0, 8, 4, 9, 0, 0, 0, 9, 4, 10, 0, 0, 0])
         )
         
-        test(
+        compare(
             DeviceInformation(
                 identifier: UUID(uuidString: "B83DD6F4-A429-41B3-945A-3E0EE5915CA1")!,
                 buildVersion: DeviceInformation.BuildVersion(rawValue: 1),
@@ -195,12 +160,12 @@ final class TLVCodingTests: XCTestCase {
             Data([0, 16, 184, 61, 214, 244, 164, 41, 65, 179, 148, 90, 62, 14, 229, 145, 92, 161, 1, 8, 1, 0, 0, 0, 0, 0, 0, 0, 2, 3, 1, 2, 3, 3, 1, 2, 4, 1, 7])
         )
         
-        test(
+        compare(
             CryptoRequest(secret: CryptoData()),
             Data([0, 32, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255])
         )
         
-        test(
+        compare(
             CustomEncodableArray(elements: [
                 .value(
                     CustomEncodableArray.Value(
@@ -373,6 +338,72 @@ final class TLVCodingTests: XCTestCase {
         encoder.outputFormatting.sortedKeys = false
         
         XCTAssertNotEqual(try encoder.encode(value), try encoder.encode(valueUnordered))
+    }
+    
+    func testNil() {
+        
+        let data = Data([
+            0,0,
+            1,0,
+            2,0,
+            3,0
+        ])
+        
+        let value = CustomEncodable(
+            data: nil,
+            uuid: nil,
+            number: nil,
+            date: nil
+        )
+        
+        var decoder = TLVDecoder()
+        decoder.log = { print("Decoder:", $0) }
+        do {
+            let decodedValue = try decoder.decode(type(of: value), from: data)
+            XCTAssertEqual(decodedValue, value)
+        } catch {
+            dump(error)
+            XCTFail("Could not decode \(value)")
+        }
+    }
+}
+
+private extension TLVCodingTests {
+    
+    func compare <T: Codable & Equatable> (_ value: T, _ data: Data, shouldFail: Bool = false) {
+        
+        var didFail = false
+        var encoder = TLVEncoder()
+        encoder.log = { print("Encoder:", $0) }
+        do {
+            let encodedData = try encoder.encode(value)
+            if shouldFail == false {
+                XCTAssertEqual(encodedData, data, "Invalid data \(Array(encodedData))")
+            }
+        } catch {
+            dump(error)
+            if shouldFail == false {
+                XCTFail("Could not encode \(value)")
+            }
+            didFail = true
+        }
+        
+        var decoder = TLVDecoder()
+        decoder.log = { print("Decoder:", $0) }
+        do {
+            let decodedValue = try decoder.decode(T.self, from: data)
+            XCTAssertEqual(decodedValue, value)
+        } catch {
+            dump(error)
+            if shouldFail == false {
+                XCTFail("Could not decode \(value)")
+            }
+            didFail = true
+        }
+        
+        if shouldFail {
+            XCTAssert(didFail, "No error thrown")
+        }
     }
 }
 
