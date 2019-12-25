@@ -98,6 +98,16 @@ final class TLVCodingTests: XCTestCase {
              Data([0, 1, 1, 1, 4, 246, 255, 255, 255, 2, 4, 10, 0, 0, 0, 3, 4, 146, 203, 143, 63, 4, 8, 114, 138, 142, 228, 242, 255, 37, 64, 5, 1, 127, 6, 2, 56, 255, 7, 4, 48, 248, 255, 255, 8, 8, 224, 177, 255, 255, 255, 255, 255, 255, 9, 1, 255, 10, 2, 44, 1, 11, 4, 184, 11, 0, 0, 12, 8, 48, 117, 0, 0, 0, 0, 0, 0]))
         
         test(
+            CustomEncodable(
+                data: nil,
+                uuid: nil,
+                number: nil,
+                date: nil
+            ),
+            Data([])
+        )
+        
+        test(
             Profile(
                 person: Person(
                     gender: .male,
