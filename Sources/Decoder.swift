@@ -469,7 +469,7 @@ internal struct TLVKeyedDecodingContainer <K: CodingKey> : KeyedDecodingContaine
         self.decoder.codingPath.append(key)
         defer { self.decoder.codingPath.removeLast() }
         
-        return try self.value(for: key) == nil
+        return try self.value(for: key)?.value.isEmpty ?? true
     }
     
     func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
