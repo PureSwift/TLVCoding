@@ -8,22 +8,59 @@
 
 import Foundation
 
-/// TLV Numeric Encoding Format
-public enum TLVNumericFormat: Equatable, Hashable {
+/// The output formatting options that determine the readability, size, and element order of an encoded TLV object.
+public struct TLVOutputFormatting: Equatable, Hashable {
     
-    case bigEndian
-    case littleEndian
+    /// The output formatting option that sorts keys in numerical order.
+    public var sortedKeys: Bool
 }
 
-/// TLV UUID Encoding Format
-public enum TLVUUIDFormat: Equatable, Hashable {
+public extension TLVOutputFormatting {
+    
+    /// The default TLV output formatting options.
+    static var `default`: TLVOutputFormatting {
+        return .init(sortedKeys: true)
+    }
+}
+
+/// TLV number formatting (endianness).
+public enum TLVNumericFormatting: Equatable, Hashable {
+    
+    case littleEndian
+    case bigEndian
+}
+
+public extension TLVNumericFormatting {
+    
+    /// The default TLV endianness for binary representation of numbers.
+    static var `default`: TLVNumericFormatting {
+        return .littleEndian
+    }
+}
+
+@available(*, deprecated, message: "Renamed to TLVNumericFormatting")
+public typealias TLVNumericFormat = TLVNumericFormatting
+
+/// TLV `UUID` Encoding Format
+public enum TLVUUIDFormatting: Equatable, Hashable {
     
     case bytes
     case string
 }
 
-/// TLV Date Encoding Format
-public enum TLVDateFormat: Equatable {
+public extension TLVUUIDFormatting {
+    
+    /// The default TLV `UUID` format.
+    static var `default`: TLVUUIDFormatting {
+        return .bytes
+    }
+}
+
+@available(*, deprecated, message: "Renamed to TLVUUIDFormatting")
+public typealias TLVUUIDFormat = TLVUUIDFormatting
+
+/// TLV `Date` Encoding Format
+public enum TLVDateFormatting: Equatable {
     
     /// Encodes dates in terms of seconds since midnight UTC on January 1, 1970.
     case secondsSince1970
@@ -39,18 +76,20 @@ public enum TLVDateFormat: Equatable {
     case formatted(DateFormatter)
 }
 
-internal struct TLVOptions {
+public extension TLVDateFormatting {
     
-    let numericFormat: TLVNumericFormat
-    
-    let uuidFormat: TLVUUIDFormat
-    
-    let dateFormat: TLVDateFormat
+    /// The default TLV `Date` format.
+    static var `default`: TLVDateFormatting {
+        return .secondsSince1970
+    }
 }
+
+@available(*, deprecated, message: "Renamed to TLVDateFormatting")
+public typealias TLVDateFormat = TLVDateFormatting
 
 // MARK: - Formatters
 
-internal extension TLVDateFormat {
+internal extension TLVDateFormatting {
     
     @available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
     static let iso8601Formatter: ISO8601DateFormatter = {

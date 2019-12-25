@@ -20,13 +20,13 @@ public struct TLVDecoder {
     public var log: ((String) -> ())?
     
     /// Format for numeric values.
-    public var numericFormat: TLVNumericFormat = .littleEndian
+    public var numericFormatting: TLVNumericFormatting = .default
     
     /// Format for UUID values.
-    public var uuidFormat: TLVUUIDFormat = .bytes
+    public var uuidFormatting: TLVUUIDFormatting = .default
     
     /// Format for Date values.
-    public var dateFormat: TLVDateFormat = .secondsSince1970
+    public var dateFormatting: TLVDateFormatting = .default
     
     // MARK: - Initialization
     
@@ -41,9 +41,9 @@ public struct TLVDecoder {
         let items = try decode(data)
         
         let options = Decoder.Options(
-            numericFormat: numericFormat,
-            uuidFormat: uuidFormat,
-            dateFormat: dateFormat
+            numericFormatting: numericFormatting,
+            uuidFormatting: uuidFormatting,
+            dateFormatting: dateFormatting
         )
         
         let decoder = Decoder(referencing: .items(items),
@@ -109,6 +109,39 @@ public struct TLVDecoder {
         return items
     }
 }
+
+// MARK: - Deprecated
+
+public extension TLVDecoder {
+    
+    @available(*, deprecated, message: "Renamed to numericFormatting")
+    var numericFormat: TLVNumericFormat {
+        get { return numericFormatting }
+        set { numericFormatting = newValue }
+    }
+    
+    @available(*, deprecated, message: "Renamed to uuidFormatting")
+    var uuidFormat: TLVUUIDFormat {
+        get { return uuidFormatting }
+        set { uuidFormatting = newValue }
+    }
+    
+    @available(*, deprecated, message: "Renamed to dateFormatting")
+    var dateFormat: TLVDateFormat {
+        get { return dateFormatting }
+        set { dateFormatting = newValue }
+    }
+}
+
+// MARK: - Combine
+
+#if canImport(Combine)
+import Combine
+
+extension TLVDecoder: TopLevelDecoder { }
+#endif
+
+// MARK: - Decoder
 
 internal extension TLVDecoder {
     
@@ -206,7 +239,14 @@ internal extension TLVDecoder {
 
 internal extension TLVDecoder.Decoder {
     
-    typealias Options = TLVOptions
+    struct Options {
+        
+        let numericFormatting: TLVNumericFormatting
+        
+        let uuidFormatting: TLVUUIDFormatting
+        
+        let dateFormatting: TLVDateFormatting
+    }
 }
 
 // MARK: - Coding Key
@@ -243,7 +283,7 @@ internal extension TLVDecoder.Decoder {
     func unboxNumeric <T: TLVRawDecodable & FixedWidthInteger> (_ data: Data, as type: T.Type) throws -> T {
         
         var numericValue = try unbox(data, as: type)
-        switch options.numericFormat {
+        switch options.numericFormatting {
         case .bigEndian:
             numericValue = T.init(bigEndian: numericValue)
         case .littleEndian:
@@ -291,7 +331,7 @@ private extension TLVDecoder.Decoder {
     
     func unboxUUID(_ data: Data) throws -> UUID {
         
-        switch options.uuidFormat {
+        switch options.uuidFormatting {
         case .bytes:
             guard data.count == MemoryLayout<uuid_t>.size else {
                 throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Invalud number of bytes (\(data.count)) for UUID"))
@@ -310,7 +350,7 @@ private extension TLVDecoder.Decoder {
     
     func unboxDate(_ data: Data) throws -> Date {
         
-        switch options.dateFormat {
+        switch options.dateFormatting {
         case .secondsSince1970:
             let timeInterval = try unboxDouble(data)
             return Date(timeIntervalSince1970: timeInterval)
@@ -320,7 +360,7 @@ private extension TLVDecoder.Decoder {
         case .iso8601:
             guard #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
                 else { fatalError("ISO8601DateFormatter is unavailable on this platform.") }
-            return try unboxDate(data, using: TLVDateFormat.iso8601Formatter)
+            return try unboxDate(data, using: TLVDateFormatting.iso8601Formatter)
         case let .formatted(formatter):
             return try unboxDate(data, using: formatter)
         }

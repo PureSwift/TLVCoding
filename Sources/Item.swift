@@ -13,12 +13,15 @@ import Foundation
  */
 public struct TLVItem: Equatable, Hashable {
     
+    /// TLV code
     public var type: TLVTypeCode
     
+    /// TLV data payload
     public var value: Data
     
     public init(type: TLVTypeCode, value: Data) {
         
+        assert(value.count <= UInt8.max)
         self.type = type
         self.value = value
     }
@@ -27,20 +30,13 @@ public struct TLVItem: Equatable, Hashable {
 public extension TLVItem {
     
     var length: UInt8 {
-        
         return UInt8(value.count)
     }
 }
 
 public extension TLVItem {
     
-    init?(data: Data) {
-        
-        fatalError()
-    }
-    
     var data: Data {
-        
         return Data(self)
     }
 }

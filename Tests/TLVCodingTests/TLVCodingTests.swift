@@ -17,7 +17,8 @@ final class TLVCodingTests: XCTestCase {
         ("testCodingKeys", testCodingKeys),
         ("testUUID", testUUID),
         ("testDate", testDate),
-        ("testDateSecondsSince1970", testDateSecondsSince1970)
+        ("testDateSecondsSince1970", testDateSecondsSince1970),
+        ("testOutputFormatting", testOutputFormatting)
     ]
     
     func testCodable() {
@@ -210,7 +211,7 @@ final class TLVCodingTests: XCTestCase {
     
     func testUUID() {
         
-        let formats: [TLVUUIDFormat] = [.bytes, .string]
+        let formats: [TLVUUIDFormatting] = [.bytes, .string]
         
         for format in formats {
             
@@ -223,7 +224,7 @@ final class TLVCodingTests: XCTestCase {
             
             var encodedData = Data()
             var encoder = TLVEncoder()
-            encoder.uuidFormat = format
+            encoder.uuidFormatting = format
             encoder.log = { print("Encoder:", $0) }
             do {
                 encodedData = try encoder.encode(value)
@@ -234,7 +235,7 @@ final class TLVCodingTests: XCTestCase {
             }
             
             var decoder = TLVDecoder()
-            decoder.uuidFormat = format
+            decoder.uuidFormatting = format
             decoder.log = { print("Decoder:", $0) }
             do {
                 let decodedValue = try decoder.decode(CustomEncodable.self, from: encodedData)
@@ -254,7 +255,7 @@ final class TLVCodingTests: XCTestCase {
         dateFormatter.calendar = Calendar(identifier: .gregorian)
         dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
         
-        var formats: [TLVDateFormat] = [.secondsSince1970, .millisecondsSince1970, .formatted(dateFormatter)]
+        var formats: [TLVDateFormatting] = [.secondsSince1970, .millisecondsSince1970, .formatted(dateFormatter)]
         
         if #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *) {
             formats.append(.iso8601)
@@ -273,7 +274,7 @@ final class TLVCodingTests: XCTestCase {
             
             var encodedData = Data()
             var encoder = TLVEncoder()
-            encoder.dateFormat = format
+            encoder.dateFormatting = format
             encoder.log = { print("Encoder:", $0) }
             do {
                 encodedData = try encoder.encode(value)
@@ -284,7 +285,7 @@ final class TLVCodingTests: XCTestCase {
             }
             
             var decoder = TLVDecoder()
-            decoder.dateFormat = format
+            decoder.dateFormatting = format
             decoder.log = { print("Decoder:", $0) }
             do {
                 let decodedValue = try decoder.decode(CustomEncodable.self, from: encodedData)
@@ -313,9 +314,32 @@ final class TLVCodingTests: XCTestCase {
         )
         
         var encoder = TLVEncoder()
-        encoder.dateFormat = .secondsSince1970
+        encoder.dateFormatting = .secondsSince1970
         encoder.log = { print("Encoder:", $0) }
         XCTAssertEqual(try encoder.encode(value), try encoder.encode(rawValue))
+    }
+    
+    func testOutputFormatting() {
+        
+        var encoder = TLVEncoder()
+        encoder.outputFormatting.sortedKeys = true
+        encoder.log = { print("Encoder:", $0) }
+        
+        let value = ProvisioningState(
+            state: .provisioning,
+            result: .success
+        )
+        
+        let valueUnordered = ProvisioningStateUnordered(
+            result: value.result,
+            state: value.state
+        )
+        
+        XCTAssertEqual(try encoder.encode(value), try encoder.encode(valueUnordered))
+        
+        encoder.outputFormatting.sortedKeys = false
+        
+        XCTAssertNotEqual(try encoder.encode(value), try encoder.encode(valueUnordered))
     }
 }
 
@@ -381,6 +405,21 @@ extension ProvisioningState.CodingKeys {
         case .state: return "state"
         case .result: return "result"
         }
+    }
+}
+
+public struct ProvisioningStateUnordered: Codable, Equatable {
+    
+    typealias CodingKeys = ProvisioningState.CodingKeys
+
+    public var result: ProvisioningState.Result
+    public var state: ProvisioningState.State
+    
+    public func encode(to encoder: Encoder) throws {
+        
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(result, forKey: .result)
+        try container.encode(state, forKey: .state)
     }
 }
 
