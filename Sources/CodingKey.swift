@@ -6,6 +6,7 @@
 //  Copyright © 2019 PureSwift. All rights reserved.
 //
 
+/// TLV Coding Key
 public protocol TLVCodingKey: CodingKey {
     
     init?(code: TLVTypeCode)
@@ -104,3 +105,4 @@ internal extension CodingKey {
         return elements.reduce("", { $0 + ($0.isEmpty ? "" : ".") + $1 })
     }
 }
+

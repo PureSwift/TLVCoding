@@ -23,16 +23,22 @@ final class TLVCodingTests: XCTestCase {
     
     func testCodable() {
         
-        func test <T: Codable & Equatable> (_ value: T, _ data: Data) {
+        func test <T: Codable & Equatable> (_ value: T, _ data: Data, shouldFail: Bool = false) {
             
+            var didFail = false
             var encoder = TLVEncoder()
             encoder.log = { print("Encoder:", $0) }
             do {
                 let encodedData = try encoder.encode(value)
-                XCTAssertEqual(encodedData, data, "Invalid data \(Array(encodedData))")
+                if shouldFail == false {
+                    XCTAssertEqual(encodedData, data, "Invalid data \(Array(encodedData))")
+                }
             } catch {
                 dump(error)
-                XCTFail("Could not encode \(value)")
+                if shouldFail == false {
+                    XCTFail("Could not encode \(value)")
+                }
+                didFail = true
             }
             
             var decoder = TLVDecoder()
@@ -42,12 +48,29 @@ final class TLVCodingTests: XCTestCase {
                 XCTAssertEqual(decodedValue, value)
             } catch {
                 dump(error)
-                XCTFail("Could not decode \(value)")
+                if shouldFail == false {
+                    XCTFail("Could not decode \(value)")
+                }
+                didFail = true
+            }
+            
+            if shouldFail {
+                XCTAssert(didFail, "No error thrown")
             }
         }
         
         test(Person(gender: .male, name: "Coleman"),
             Data([0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110]))
+        
+        test(Person(gender: .male, name: "Coleman"),
+             Data([0, 1]),
+             shouldFail: true
+        )
+        
+        test(Person(gender: .male, name: "Coleman"),
+             Data([0, 2, 0]),
+             shouldFail: true
+        )
         
         test(Person(gender: .male, name: ""),
              Data([0, 1, 0, 1, 0]))
