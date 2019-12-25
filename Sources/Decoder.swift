@@ -469,7 +469,14 @@ internal struct TLVKeyedDecodingContainer <K: CodingKey> : KeyedDecodingContaine
         self.decoder.codingPath.append(key)
         defer { self.decoder.codingPath.removeLast() }
         
-        return try self.value(for: key)?.value.isEmpty ?? true
+        self.decoder.log?("Check if nil at path \"\(decoder.codingPath.path)\"")
+        
+        // check if key exists
+        guard let item = try self.value(for: key) else {
+            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: self.decoder.codingPath, debugDescription: "No value associated with key \(key.stringValue)."))
+        }
+        
+        return item.value.isEmpty
     }
     
     func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
@@ -590,6 +597,7 @@ internal struct TLVKeyedDecodingContainer <K: CodingKey> : KeyedDecodingContaine
         
         self.decoder.codingPath.append(key)
         defer { self.decoder.codingPath.removeLast() }
+        decoder.log?("Will read value at path \"\(decoder.codingPath.path)\"")
         guard let item = try self.value(for: key) else {
             throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: self.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
         }
@@ -598,8 +606,6 @@ internal struct TLVKeyedDecodingContainer <K: CodingKey> : KeyedDecodingContaine
     
     /// Access actual value
     private func value(for key: Key) throws -> TLVItem? {
-        
-        decoder.log?("Will read value at path \"\(decoder.codingPath.path)\"")
         let typeCode = try self.decoder.typeCode(for: key)
         return container.first { $0.type == typeCode }
     }
