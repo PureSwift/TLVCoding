@@ -24,6 +24,19 @@ final class TLVCodingTests: XCTestCase {
     
     func testCodable() {
         
+        compare(
+            [
+                UInt8(0xAA),
+                UInt8(0xBB),
+                UInt8(0xCC),
+            ],
+            Data([
+                0,1,0xAA,
+                1,1,0xBB,
+                2,1,0xCC
+            ])
+        )
+        
         compare(Person(gender: .male, name: "Coleman"),
             Data([0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110]))
         
