@@ -17,7 +17,8 @@ final class TLVCodingTests: XCTestCase {
         ("testCodingKeys", testCodingKeys),
         ("testUUID", testUUID),
         ("testDate", testDate),
-        ("testDateSecondsSince1970", testDateSecondsSince1970)
+        ("testDateSecondsSince1970", testDateSecondsSince1970),
+        ("testOutputFormatting", testOutputFormatting)
     ]
     
     func testCodable() {
@@ -317,6 +318,29 @@ final class TLVCodingTests: XCTestCase {
         encoder.log = { print("Encoder:", $0) }
         XCTAssertEqual(try encoder.encode(value), try encoder.encode(rawValue))
     }
+    
+    func testOutputFormatting() {
+        
+        var encoder = TLVEncoder()
+        encoder.outputFormatting.sortedKeys = true
+        encoder.log = { print("Encoder:", $0) }
+        
+        let value = ProvisioningState(
+            state: .provisioning,
+            result: .success
+        )
+        
+        let valueUnordered = ProvisioningStateUnordered(
+            result: value.result,
+            state: value.state
+        )
+        
+        XCTAssertEqual(try encoder.encode(value), try encoder.encode(valueUnordered))
+        
+        encoder.outputFormatting.sortedKeys = false
+        
+        XCTAssertNotEqual(try encoder.encode(value), try encoder.encode(valueUnordered))
+    }
 }
 
 // MARK: - Supporting Types
@@ -381,6 +405,21 @@ extension ProvisioningState.CodingKeys {
         case .state: return "state"
         case .result: return "result"
         }
+    }
+}
+
+public struct ProvisioningStateUnordered: Codable, Equatable {
+    
+    typealias CodingKeys = ProvisioningState.CodingKeys
+
+    public var result: ProvisioningState.Result
+    public var state: ProvisioningState.State
+    
+    public func encode(to encoder: Encoder) throws {
+        
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(result, forKey: .result)
+        try container.encode(state, forKey: .state)
     }
 }
 
