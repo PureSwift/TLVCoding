@@ -471,12 +471,9 @@ internal struct TLVKeyedDecodingContainer <K: CodingKey> : KeyedDecodingContaine
         
         self.decoder.log?("Check if nil at path \"\(decoder.codingPath.path)\"")
         
-        // check if key exists
-        guard let item = try self.value(for: key) else {
-            throw DecodingError.keyNotFound(key, DecodingError.Context(codingPath: self.decoder.codingPath, debugDescription: "No value associated with key \(key.stringValue)."))
-        }
-        
-        return item.value.isEmpty
+        // check if key exists since there is no way to represent nil in TLV
+        // empty data and strings should not be falsely reported as nil
+        return try self.value(for: key) == nil
     }
     
     func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {

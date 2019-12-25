@@ -18,8 +18,7 @@ final class TLVCodingTests: XCTestCase {
         ("testUUID", testUUID),
         ("testDate", testDate),
         ("testDateSecondsSince1970", testDateSecondsSince1970),
-        ("testOutputFormatting", testOutputFormatting),
-        ("testNil", testNil)
+        ("testOutputFormatting", testOutputFormatting)
     ]
     
     func testCodable() {
@@ -83,6 +82,26 @@ final class TLVCodingTests: XCTestCase {
                 date: nil
             ),
             Data([])
+        )
+        
+        compare(
+            CustomEncodable(
+                data: Data(),
+                uuid: nil,
+                number: nil,
+                date: nil
+            ),
+            Data([0, 0])
+        )
+        
+        compare(
+            CustomEncodable(
+                data: Data([0x00, 0x01]),
+                uuid: nil,
+                number: nil,
+                date: nil
+            ),
+            Data([0, 2, 0x00, 0x01])
         )
         
         compare(
@@ -351,31 +370,6 @@ final class TLVCodingTests: XCTestCase {
         encoder.outputFormatting.sortedKeys = false
         
         XCTAssertNotEqual(try encoder.encode(value), try encoder.encode(valueUnordered))
-    }
-    
-    func testNil() {
-        
-        let data = Data([
-            0,0,
-            3,0
-        ])
-        
-        let value = CustomEncodable(
-            data: nil,
-            uuid: nil,
-            number: nil,
-            date: nil
-        )
-        
-        var decoder = TLVDecoder()
-        decoder.log = { print("Decoder:", $0) }
-        do {
-            let decodedValue = try decoder.decode(type(of: value), from: data)
-            XCTAssertEqual(decodedValue, value)
-        } catch {
-            dump(error)
-            XCTFail("Could not decode \(value)")
-        }
     }
 }
 
