@@ -68,12 +68,14 @@ public enum TLVDateFormatting: Equatable {
     /// Encodes dates in terms of milliseconds since midnight UTC on January 1, 1970.
     case millisecondsSince1970
     
+    #if !os(WASI)
     /// Formats dates according to the ISO 8601 and RFC 3339 standards.
     @available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
     case iso8601
     
     /// Defers formatting settings to a supplied date formatter.
     case formatted(DateFormatter)
+    #endif
 }
 
 public extension TLVDateFormatting {
@@ -89,6 +91,14 @@ public typealias TLVDateFormat = TLVDateFormatting
 
 // MARK: - Formatters
 
+#if !os(WASI)
+internal protocol DateFormatterProtocol: AnyObject {
+    
+    func string(from date: Date) -> String
+    
+    func date(from string: String) -> Date?
+}
+
 internal extension TLVDateFormatting {
     
     @available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
@@ -99,14 +109,8 @@ internal extension TLVDateFormatting {
     }()
 }
 
-internal protocol DateFormatterProtocol: class {
-    
-    func string(from date: Date) -> String
-    
-    func date(from string: String) -> Date?
-}
-
 extension DateFormatter: DateFormatterProtocol { }
 
 @available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
 extension ISO8601DateFormatter: DateFormatterProtocol { }
+#endif

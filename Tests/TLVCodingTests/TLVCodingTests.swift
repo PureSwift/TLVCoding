@@ -279,18 +279,23 @@ final class TLVCodingTests: XCTestCase {
     
     func testDate() {
         
+        var formats: [TLVDateFormatting] = [
+            .secondsSince1970,
+            .millisecondsSince1970
+        ]
+        
+        #if !os(WASI)
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
         dateFormatter.calendar = Calendar(identifier: .gregorian)
         dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
-        
-        var formats: [TLVDateFormatting] = [.secondsSince1970, .millisecondsSince1970, .formatted(dateFormatter)]
-        
+        formats.append(.formatted(dateFormatter))
         if #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *) {
             formats.append(.iso8601)
         }
-        
+        #endif
+
         let date = Date(timeIntervalSince1970: 60 * 60 * 24 * 365)
         
         for format in formats {

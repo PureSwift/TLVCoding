@@ -356,16 +356,18 @@ private extension TLVDecoder.Decoder {
         case .millisecondsSince1970:
             let timeInterval = try unboxDouble(data)
             return Date(timeIntervalSince1970: timeInterval / 1000)
+        #if !os(WASI)
         case .iso8601:
             guard #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *)
                 else { fatalError("ISO8601DateFormatter is unavailable on this platform.") }
             return try unboxDate(data, using: TLVDateFormatting.iso8601Formatter)
         case let .formatted(formatter):
             return try unboxDate(data, using: formatter)
+        #endif
         }
     }
     
-    @inline(__always)
+    #if !os(WASI)
     func unboxDate <T: DateFormatterProtocol> (_ data: Data, using formatter: T) throws -> Date {
         let string = try unbox(data, as: String.self)
         guard let date = formatter.date(from: string) else {
@@ -373,6 +375,7 @@ private extension TLVDecoder.Decoder {
         }
         return date
     }
+    #endif
 }
 
 // MARK: - Stack
