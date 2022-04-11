@@ -1,11 +1,7 @@
-// swift-tools-version:5.0
+// swift-tools-version:5.1
 import PackageDescription
 
-#if os(Linux)
-let libraryType: PackageDescription.Product.Library.LibraryType = .dynamic
-#else
 let libraryType: PackageDescription.Product.Library.LibraryType = .static
-#endif
 
 let package = Package(
     name: "TLVCoding",
@@ -19,6 +15,5 @@ let package = Package(
     targets: [
         .target(name: "TLVCoding", path: "./Sources"),
         .testTarget(name: "TLVCodingTests", dependencies: ["TLVCoding"])
-    ],
-    swiftLanguageVersions: [.v5]
+    ]
 )
