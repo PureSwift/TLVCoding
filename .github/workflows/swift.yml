@@ -13,7 +13,6 @@ jobs:
         - name: Xcode Version
           run: |
             xcodebuild -version
-            swift --version
         - name: Swift Version
           run: swift --version
         - name: Build (Debug)
@@ -39,6 +38,8 @@ jobs:
         - name: Build (Release)
           run: swift build -c release
         - name: Test (Debug)
-          run: swift test --configuration debug
+          run: swift test --configuration debug --enable-code-coverage
         - name: Test (Release)
-          run: swift test --configuration release -Xswiftc -enable-testing
+          run: swift test --configuration release -Xswiftc -enable-testing --enable-code-coverage
+        - name: Coverage Report
+          uses: maxep/spm-lcov-action@0.3.1
