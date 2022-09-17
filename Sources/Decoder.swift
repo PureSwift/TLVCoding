@@ -38,21 +38,27 @@ public struct TLVDecoder {
         
         log?("Will decode \(String(reflecting: T.self))")
         
-        let items = try decode(data)
-        
-        let options = Decoder.Options(
-            numericFormatting: numericFormatting,
-            uuidFormatting: uuidFormatting,
-            dateFormatting: dateFormatting
-        )
-        
-        let decoder = Decoder(referencing: .items(items),
-                              userInfo: userInfo,
-                              log: log,
-                              options: options)
-        
-        // decode from container
-        return try T.init(from: decoder)
+        if let tlvCodable = type as? TLVDecodable.Type {
+            guard let value = tlvCodable.init(tlvData: data) else {
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Invalid data for \(String(reflecting: type))"))
+            }
+            return value as! T
+        } else {
+            let items = try decode(data)
+            let options = Decoder.Options(
+                numericFormatting: numericFormatting,
+                uuidFormatting: uuidFormatting,
+                dateFormatting: dateFormatting
+            )
+            let decoder = Decoder(
+                referencing: .items(items),
+                userInfo: userInfo,
+                log: log,
+                options: options
+            )
+            // decode from container
+            return try T.init(from: decoder)
+        }
     }
     
     public func decode(_ data: Data) throws -> [TLVItem] {
@@ -311,7 +317,7 @@ internal extension TLVDecoder.Decoder {
             return try unboxUUID(item.value) as! T
         } else if type == Date.self {
             return try unboxDate(item.value) as! T
-        } else if let tlvCodable = type as? TLVCodable.Type {
+        } else if let tlvCodable = type as? TLVDecodable.Type {
             guard let value = tlvCodable.init(tlvData: item.value) else {
                 throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Invalid data for \(String(reflecting: type))"))
             }

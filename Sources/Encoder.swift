@@ -41,22 +41,23 @@ public struct TLVEncoder {
         
         log?("Will encode \(String(reflecting: T.self))")
         
-        let options = Encoder.Options(
-            outputFormatting: outputFormatting,
-            numericFormatting: numericFormatting,
-            uuidFormatting: uuidFormatting,
-            dateFormatting: dateFormatting
-        )
-        
-        let encoder = Encoder(userInfo: userInfo, log: log, options: options)
-        try value.encode(to: encoder)
-        assert(encoder.stack.containers.count == 1)
-        
-        guard case let .items(container) = encoder.stack.root else {
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Top-level \(T.self) is not encoded as items."))
+        if let encodable = value as? TLVEncodable {
+            return encodable.tlvData
+        } else {
+            let options = Encoder.Options(
+                outputFormatting: outputFormatting,
+                numericFormatting: numericFormatting,
+                uuidFormatting: uuidFormatting,
+                dateFormatting: dateFormatting
+            )
+            let encoder = Encoder(userInfo: userInfo, log: log, options: options)
+            try value.encode(to: encoder)
+            assert(encoder.stack.containers.count == 1)
+            guard case let .items(container) = encoder.stack.root else {
+                throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Top-level \(T.self) is not encoded as items."))
+            }
+            return container.data
         }
-        
-        return container.data
     }
     
     public func encode(_ items: [TLVItem]) -> Data {
