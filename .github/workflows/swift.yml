@@ -3,48 +3,68 @@ name: Swift
 on: [push]
 
 jobs:
-  mac:
+  macos:
     name: macOS
-    runs-on: macos-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Swift Version
-      run: swift --version
-    - name: Build (Debug)
-      run: swift build -c debug
-    - name: Build (Release)
-      run: swift build -c release
-    - name: Test (Debug)
-      run: swift test --configuration debug
-
-  linux:
-    name: Linux
+    runs-on: macos-26
     strategy:
       matrix:
-        swift: ["6.0", "6.1"]
-    runs-on: ubuntu-latest
-    container: swift:${{ matrix.swift }}
+        config: ["debug", "release"]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Swift Version
       run: swift --version
-    - name: Build (Debug)
-      run: swift build -c debug
-    - name: Build (Release)
-      run: swift build -c release
-    - name: Test (Debug)
-      run: swift test --configuration debug
+    - name: Build
+      run: swift build -c ${{ matrix.config }}
+    - name: Test
+      run: swift test -c ${{ matrix.config }}
 
-  embedded:
-    name: Embedded Swift
+  linux:
+    name: Linux (${{ matrix.container }})
     runs-on: ubuntu-latest
-    container: swift:6.1
+    strategy:
+      fail-fast: false
+      matrix:
+        container: ["swift:latest", "swiftlang/swift:nightly-noble"]
+        config: ["debug", "release"]
+    container: ${{ matrix.container }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Swift Version
       run: swift --version
-    - name: Build (ARMv7-M bare metal)
-      run: SWIFTPM_ENABLE_MACROS=0 swift build --target TLVCoding --disable-index-store --triple armv7em-none-none-eabi -Xswiftc -enable-experimental-feature -Xswiftc Embedded -Xswiftc -wmo
+    - name: Build
+      run: swift build -c ${{ matrix.config }}
+    - name: Test
+      run: swift test -c ${{ matrix.config }}
+
+  coverage:
+    name: Code Coverage
+    runs-on: macos-26
+    permissions:
+      contents: read
+      code-quality: write # required by actions/upload-code-coverage
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Swift Version
+      run: swift --version
+    - name: Export coverage and enforce threshold
+      run: Scripts/coverage.sh 70
+    - name: Upload coverage to GitHub Code Quality
+      uses: actions/upload-code-coverage@v1
+      with:
+        file: .build/coverage/coverage.xml
+        language: Swift
+        label: code-coverage/llvm-cov
+        # Code Quality was in public preview until 2026-07-20; keep this while
+        # the repo might not have the feature enabled, so a failed upload
+        # doesn't break CI. Remove once GA is enabled everywhere.
+        fail-on-error: false
+    - name: Upload coverage artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage
+        path: .build/coverage/
+        if-no-files-found: error
