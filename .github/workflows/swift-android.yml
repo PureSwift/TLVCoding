@@ -1,0 +1,47 @@
+name: Swift Android
+
+on: [push]
+
+jobs:
+  android:
+    name: Android (unit tests)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    # Cross-compiles the package for Android and runs the XCTest suite on an
+    # Android emulator (x86_64) provisioned by the action.
+    - name: Build and test on Android emulator
+      uses: skiptools/swift-android-action@v2
+      with:
+        swift-version: 6.3.3
+
+  android-armv7:
+    name: Android (armv7 cross-compile)
+    runs-on: ubuntu-latest
+    container: swift:6.3.3
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Install dependencies
+      run: apt-get update -y && apt-get install -y curl
+    - name: Install Swift Android SDK
+      # The Android SDK artifact bundle is only published for 6.3.3, and the
+      # host toolchain must match the bundle version exactly (Swift's module
+      # format isn't cross-patch-compatible) — hence the swift:6.3.3 container.
+      run: |
+        set -eux
+        url="https://download.swift.org/swift-6.3.3-release/android-sdk/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE_android.artifactbundle.tar.gz"
+        curl -fsSL "$url" -o android.artifactbundle.tar.gz
+        swift sdk install android.artifactbundle.tar.gz \
+          --checksum d160cc3206dd1886dae3fef2337af5e25ec034692cd0ec225721c56cc69da7f5
+        swift sdk list
+    # armv7 can't run on the x86_64 emulator, so this is a cross-compile check
+    # only. The armv7 SDK id is resolved from `swift sdk list` to avoid pinning
+    # the exact API-level suffix in the target triple.
+    - name: Build (armv7)
+      run: |
+        set -eux
+        SDK=$(swift sdk list | grep -iE 'armv7|armeabi' | head -1)
+        test -n "$SDK"
+        swift build --swift-sdk "$SDK"
