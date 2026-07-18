@@ -9,6 +9,13 @@ let dynamicLibrary = environment["SWIFT_BUILD_DYNAMIC_LIBRARY"] != nil
 let enableMacros = environment["SWIFTPM_ENABLE_MACROS"] != "0"
 let buildDocs = environment["BUILDING_FOR_DOCUMENTATION_GENERATION"] != nil
 
+// Swift Binary Parsing requires a Swift 6.2+ toolchain
+#if compiler(>=6.2)
+let enableBinaryParsing = environment["SWIFTPM_ENABLE_BINARY_PARSING"] != "0"
+#else
+let enableBinaryParsing = false
+#endif
+
 // force building as dynamic library
 let libraryType: PackageDescription.Product.Library.LibraryType? = dynamicLibrary ? .dynamic : nil
 
@@ -38,6 +45,30 @@ var package = Package(
     ]
 )
 
+// Swift Binary Parsing
+if enableBinaryParsing {
+    // BinaryParsing requires higher Apple platform deployment targets
+    package.platforms = [
+        .macOS(.v13),
+        .iOS(.v16),
+        .watchOS(.v9),
+        .tvOS(.v16),
+        .visionOS(.v1)
+    ]
+    package.dependencies += [
+        .package(
+            url: "https://github.com/apple/swift-binary-parsing.git",
+            from: "0.0.2"
+        )
+    ]
+    package.targets[0].dependencies += [
+        .product(
+            name: "BinaryParsing",
+            package: "swift-binary-parsing"
+        )
+    ]
+}
+
 // SwiftPM plugins
 if buildDocs {
     package.dependencies += [
@@ -49,7 +80,7 @@ if buildDocs {
 }
 
 if enableMacros {
-    let version: Version
+    var version: Version
     #if swift(>=6.3)
     version = "603.0.1"
     #elseif swift(>=6.2)
@@ -59,6 +90,10 @@ if enableMacros {
     #else
     version = "600.0.1"
     #endif
+    if enableBinaryParsing {
+        // swift-binary-parsing 0.0.2 pins swift-syntax 602.0.0..<603.0.0
+        version = "602.0.0"
+    }
     package.targets[0].swiftSettings = [
         .define("SWIFTPM_ENABLE_MACROS")
     ]
