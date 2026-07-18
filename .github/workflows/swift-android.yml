@@ -15,35 +15,33 @@ jobs:
       uses: skiptools/swift-android-action@v2
       with:
         swift-version: 6.3.3
+        # Free disk space before launching the emulator for extra headroom.
+        free-disk-space: true
+        # The GitHub-hosted x86_64 emulator intermittently dies with exit 137
+        # right after "Emulator booted" (adb: device offline). Force a cold boot
+        # (-no-snapshot, avoiding a crash-prone snapshot restore) with software
+        # rendering (-gpu swiftshader_indirect) and a generous boot timeout to
+        # make the boot deterministic.
+        android-emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+        android-emulator-boot-timeout: 900
 
   android-armv7:
     name: Android (armv7 cross-compile)
     runs-on: ubuntu-latest
-    container: swift:6.3.3
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Install dependencies
-      run: apt-get update -y && apt-get install -y curl
-    - name: Install Swift Android SDK
-      # The Android SDK artifact bundle is only published for 6.3.3, and the
-      # host toolchain must match the bundle version exactly (Swift's module
-      # format isn't cross-patch-compatible) — hence the swift:6.3.3 container.
-      run: |
-        set -eux
-        url="https://download.swift.org/swift-6.3.3-release/android-sdk/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE_android.artifactbundle.tar.gz"
-        curl -fsSL "$url" -o android.artifactbundle.tar.gz
-        swift sdk install android.artifactbundle.tar.gz \
-          --checksum d160cc3206dd1886dae3fef2337af5e25ec034692cd0ec225721c56cc69da7f5
-        swift sdk list
     # armv7 can't run on the x86_64 emulator, so this is a cross-compile check
-    # only. The bundle installs as a single multi-arch SDK; the architecture is
-    # selected by target triple. Read the exact armv7 triple (with its
-    # API-level suffix) from the installed SDK metadata rather than pinning it.
-    - name: Build (armv7)
-      run: |
-        set -eux
-        TRIPLE=$(grep -rhoE 'armv7-unknown-linux-androideabi[0-9]*' ~/.swiftpm | sort -u | head -1)
-        test -n "$TRIPLE"
-        echo "Using target triple: $TRIPLE"
-        swift build --swift-sdk "$TRIPLE"
+    # only (build-tests/run-tests off skips the emulator entirely). The action
+    # provisions the Android NDK and points the SDK at it via ANDROID_NDK_HOME;
+    # a bare `swift:6.3.3` container can't build for Android because the SDK's
+    # `ndk-sysroot` (semaphore.h, libc, …) is supplied by the NDK, not the
+    # bundle. The action's build command already targets x86_64, so append a
+    # second `--swift-sdk` for armv7 (last one wins) to retarget the compile.
+    - name: Cross-compile for armv7
+      uses: skiptools/swift-android-action@v2
+      with:
+        swift-version: 6.3.3
+        build-tests: false
+        run-tests: false
+        swift-build-flags: --swift-sdk armv7-unknown-linux-android28
