@@ -15,6 +15,9 @@ jobs:
       uses: skiptools/swift-android-action@v2
       with:
         swift-version: 6.3.3
+        # Free disk space before launching the emulator; without the headroom
+        # the emulator has been getting OOM-killed (adb exit 137) right after boot.
+        free-disk-space: true
 
   android-armv7:
     name: Android (armv7 cross-compile)
@@ -38,12 +41,8 @@ jobs:
         swift sdk list
     # armv7 can't run on the x86_64 emulator, so this is a cross-compile check
     # only. The bundle installs as a single multi-arch SDK; the architecture is
-    # selected by target triple. Read the exact armv7 triple (with its
-    # API-level suffix) from the installed SDK metadata rather than pinning it.
+    # selected by target triple. The SDK's armv7 triples are named
+    # `armv7-unknown-linux-android<api>` (not `...androideabi<api>`), one per
+    # Android API level 28-36.
     - name: Build (armv7)
-      run: |
-        set -eux
-        TRIPLE=$(grep -rhoE 'armv7-unknown-linux-androideabi[0-9]*' ~/.swiftpm | sort -u | head -1)
-        test -n "$TRIPLE"
-        echo "Using target triple: $TRIPLE"
-        swift build --swift-sdk "$TRIPLE"
+      run: swift build --swift-sdk armv7-unknown-linux-android28
