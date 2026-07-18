@@ -5,18 +5,10 @@ on: [push]
 jobs:
   mac:
     name: macOS
-    strategy:
-      matrix:
-        swift: [5.7.3]
-        os: [macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     steps:
-    - name: Install Swift
-      uses: slashmo/install-swift@v0.3.0
-      with:
-        version: ${{ matrix.swift }}
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Swift Version
       run: swift --version
     - name: Build (Debug)
@@ -30,16 +22,12 @@ jobs:
     name: Linux
     strategy:
       matrix:
-        swift: [5.1.5, 5.5, 5.6.3, 5.7.3]
-        os: [ubuntu-20.04]
-    runs-on: ${{ matrix.os }}
+        swift: ["6.0", "6.1"]
+    runs-on: ubuntu-latest
+    container: swift:${{ matrix.swift }}
     steps:
-    - name: Install Swift
-      uses: slashmo/install-swift@v0.3.0
-      with:
-        version: ${{ matrix.swift }}
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Swift Version
       run: swift --version
     - name: Build (Debug)
@@ -48,3 +36,14 @@ jobs:
       run: swift build -c release
     - name: Test (Debug)
       run: swift test --configuration debug
+
+  embedded:
+    name: Embedded Swift
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Swift Version
+      run: swift --version
+    - name: Build (ARMv7-M bare metal)
+      run: SWIFTPM_ENABLE_MACROS=0 swift build --target TLVCoding --triple armv7em-none-none-eabi -Xswiftc -enable-experimental-feature -Xswiftc Embedded -Xswiftc -wmo
