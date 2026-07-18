@@ -6,7 +6,9 @@
 //  Copyright © 2018 PureSwift. All rights reserved.
 //
 
-#if canImport(Foundation) && !hasFeature(Embedded)
+#if canImport(FoundationEssentials) && !hasFeature(Embedded)
+@_exported import struct FoundationEssentials.Data
+#elseif canImport(Foundation) && !hasFeature(Embedded)
 @_exported import struct Foundation.Data
 #endif
 
