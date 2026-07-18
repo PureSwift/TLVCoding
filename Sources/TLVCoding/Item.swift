@@ -6,7 +6,9 @@
 //  Copyright © 2019 PureSwift. All rights reserved.
 //
 
-#if canImport(Foundation) && !hasFeature(Embedded)
+#if canImport(FoundationEssentials) && !hasFeature(Embedded)
+import FoundationEssentials
+#elseif canImport(Foundation) && !hasFeature(Embedded)
 import Foundation
 #endif
 
