@@ -3,24 +3,44 @@ name: Swift
 on: [push]
 
 jobs:
-  mac:
+  macos:
     name: macOS
-    runs-on: macos-latest
+    runs-on: macos-26
+    strategy:
+      matrix:
+        config: ["debug", "release"]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Swift Version
       run: swift --version
-    - name: Build (Debug)
-      run: swift build -c debug
-    - name: Build (Release)
-      run: swift build -c release
-    - name: Test (Debug)
-      run: swift test --configuration debug
+    - name: Build
+      run: swift build -c ${{ matrix.config }}
+    - name: Test
+      run: swift test -c ${{ matrix.config }}
+
+  linux:
+    name: Linux (${{ matrix.container }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        container: ["swift:latest", "swiftlang/swift:nightly-noble"]
+        config: ["debug", "release"]
+    container: ${{ matrix.container }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Swift Version
+      run: swift --version
+    - name: Build
+      run: swift build -c ${{ matrix.config }}
+    - name: Test
+      run: swift test -c ${{ matrix.config }}
 
   coverage:
     name: Code Coverage
-    runs-on: macos-latest
+    runs-on: macos-26
     permissions:
       contents: read
       code-quality: write # required by actions/upload-code-coverage
@@ -48,22 +68,3 @@ jobs:
         name: code-coverage
         path: .build/coverage/
         if-no-files-found: error
-
-  linux:
-    name: Linux
-    strategy:
-      matrix:
-        swift: [6.3.3]
-    runs-on: ubuntu-latest
-    container: swift:${{ matrix.swift }}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Swift Version
-      run: swift --version
-    - name: Build (Debug)
-      run: swift build -c debug
-    - name: Build (Release)
-      run: swift build -c release
-    - name: Test (Debug)
-      run: swift test --configuration debug
