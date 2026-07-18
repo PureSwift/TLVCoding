@@ -15,9 +15,15 @@ jobs:
       uses: skiptools/swift-android-action@v2
       with:
         swift-version: 6.3.3
-        # Free disk space before launching the emulator; without the headroom
-        # the emulator has been getting OOM-killed (adb exit 137) right after boot.
+        # Free disk space before launching the emulator for extra headroom.
         free-disk-space: true
+        # The GitHub-hosted x86_64 emulator intermittently dies with exit 137
+        # right after "Emulator booted" (adb: device offline). Force a cold boot
+        # (-no-snapshot, avoiding a crash-prone snapshot restore) with software
+        # rendering (-gpu swiftshader_indirect) and a generous boot timeout to
+        # make the boot deterministic.
+        android-emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+        android-emulator-boot-timeout: 900
 
   android-armv7:
     name: Android (armv7 cross-compile)
