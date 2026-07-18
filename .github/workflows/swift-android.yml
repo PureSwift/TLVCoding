@@ -22,27 +22,20 @@ jobs:
   android-armv7:
     name: Android (armv7 cross-compile)
     runs-on: ubuntu-latest
-    container: swift:6.3.3
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Install dependencies
-      run: apt-get update -y && apt-get install -y curl
-    - name: Install Swift Android SDK
-      # The Android SDK artifact bundle is only published for 6.3.3, and the
-      # host toolchain must match the bundle version exactly (Swift's module
-      # format isn't cross-patch-compatible) — hence the swift:6.3.3 container.
-      run: |
-        set -eux
-        url="https://download.swift.org/swift-6.3.3-release/android-sdk/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE_android.artifactbundle.tar.gz"
-        curl -fsSL "$url" -o android.artifactbundle.tar.gz
-        swift sdk install android.artifactbundle.tar.gz \
-          --checksum d160cc3206dd1886dae3fef2337af5e25ec034692cd0ec225721c56cc69da7f5
-        swift sdk list
     # armv7 can't run on the x86_64 emulator, so this is a cross-compile check
-    # only. The bundle installs as a single multi-arch SDK; the architecture is
-    # selected by target triple. The SDK's armv7 triples are named
-    # `armv7-unknown-linux-android<api>` (not `...androideabi<api>`), one per
-    # Android API level 28-36.
-    - name: Build (armv7)
-      run: swift build --swift-sdk armv7-unknown-linux-android28
+    # only (build-tests/run-tests off skips the emulator entirely). The action
+    # provisions the Android NDK and points the SDK at it via ANDROID_NDK_HOME;
+    # a bare `swift:6.3.3` container can't build for Android because the SDK's
+    # `ndk-sysroot` (semaphore.h, libc, …) is supplied by the NDK, not the
+    # bundle. The action's build command already targets x86_64, so append a
+    # second `--swift-sdk` for armv7 (last one wins) to retarget the compile.
+    - name: Cross-compile for armv7
+      uses: skiptools/swift-android-action@v2
+      with:
+        swift-version: 6.3.3
+        build-tests: false
+        run-tests: false
+        swift-build-flags: --swift-sdk armv7-unknown-linux-android28
