@@ -8,8 +8,13 @@
 //  Copyright © 2026 PureSwift. All rights reserved.
 //
 
-#if canImport(Foundation) && !hasFeature(Embedded)
+#if (canImport(FoundationEssentials) || canImport(Foundation)) && !hasFeature(Embedded)
+
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 
 // MARK: - UUID
 
