@@ -37,11 +37,13 @@ jobs:
           --checksum d160cc3206dd1886dae3fef2337af5e25ec034692cd0ec225721c56cc69da7f5
         swift sdk list
     # armv7 can't run on the x86_64 emulator, so this is a cross-compile check
-    # only. The armv7 SDK id is resolved from `swift sdk list` to avoid pinning
-    # the exact API-level suffix in the target triple.
+    # only. The bundle installs as a single multi-arch SDK; the architecture is
+    # selected by target triple. Read the exact armv7 triple (with its
+    # API-level suffix) from the installed SDK metadata rather than pinning it.
     - name: Build (armv7)
       run: |
         set -eux
-        SDK=$(swift sdk list | grep -iE 'armv7|armeabi' | head -1)
-        test -n "$SDK"
-        swift build --swift-sdk "$SDK"
+        TRIPLE=$(grep -rhoE 'armv7-unknown-linux-androideabi[0-9]*' ~/.swiftpm | sort -u | head -1)
+        test -n "$TRIPLE"
+        echo "Using target triple: $TRIPLE"
+        swift build --swift-sdk "$TRIPLE"
