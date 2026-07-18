@@ -39,11 +39,12 @@ jobs:
 
   embedded:
     name: Embedded Swift
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
+    container: swift:6.1
     steps:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Swift Version
       run: swift --version
     - name: Build (ARMv7-M bare metal)
-      run: SWIFTPM_ENABLE_MACROS=0 swift build --target TLVCoding --triple armv7em-none-none-eabi -Xswiftc -enable-experimental-feature -Xswiftc Embedded -Xswiftc -wmo
+      run: SWIFTPM_ENABLE_MACROS=0 swift build --target TLVCoding --disable-index-store --triple armv7em-none-none-eabi -Xswiftc -enable-experimental-feature -Xswiftc Embedded -Xswiftc -wmo
