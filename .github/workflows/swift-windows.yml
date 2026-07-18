@@ -1,0 +1,21 @@
+name: Swift Windows
+
+on: [push]
+
+jobs:
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+    - uses: compnerd/gha-setup-swift@main
+      with:
+        branch: swift-6.3.3-release
+        tag: 6.3.3-RELEASE
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Swift Version
+      run: swift --version
+    - name: Build
+      run: swift build
+    - name: Test
+      run: swift test
