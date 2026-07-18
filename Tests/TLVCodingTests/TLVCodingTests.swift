@@ -8,6 +8,9 @@
 
 import Foundation
 import XCTest
+#if canImport(BinaryParsing)
+import BinaryParsing
+#endif
 @testable import TLVCoding
 
 final class TLVCodingTests: XCTestCase {
@@ -264,6 +267,43 @@ final class TLVCodingTests: XCTestCase {
         // encoded as seconds since 1970
         XCTAssertEqual(date.tlvData, date.timeIntervalSince1970.tlvData)
     }
+
+    #if canImport(BinaryParsing)
+    func testBinaryParsing() throws {
+
+        let data = Data([0, 1, 0, 1, 7, 67, 111, 108, 101, 109, 97, 110])
+
+        // parse a container from raw data
+        let container = try TLVContainer(parsing: data)
+        XCTAssertEqual(container, TLVContainer(data: data))
+        XCTAssertEqual(container.items.count, 2)
+        XCTAssertEqual(container.decode(Gender.self, forKey: Person.CodingKeys.gender), .male)
+        XCTAssertEqual(container.decode(String.self, forKey: Person.CodingKeys.name), "Coleman")
+
+        // parse items sequentially from a span
+        try data.withParserSpan { input in
+            let gender = try TLVItem(parsing: &input)
+            XCTAssertEqual(gender.type, 0)
+            XCTAssertEqual(gender.value, Data([0]))
+            let name = try TLVItem(parsing: &input)
+            XCTAssertEqual(name.type, 1)
+            XCTAssertEqual(name.value, Data([67, 111, 108, 101, 109, 97, 110]))
+            XCTAssert(input.isEmpty)
+        }
+
+        // parse a type code
+        try Data([0xAA]).withParserSpan { input in
+            XCTAssertEqual(try TLVTypeCode(parsing: &input), 0xAA)
+        }
+
+        // empty data is a valid empty container
+        XCTAssertEqual(try TLVContainer(parsing: Data()).items, [])
+
+        // invalid data throws
+        XCTAssertThrowsError(try TLVContainer(parsing: Data([0])), "Missing length byte")
+        XCTAssertThrowsError(try TLVContainer(parsing: Data([0, 2, 0])), "Truncated value")
+    }
+    #endif
 }
 
 private extension TLVCodingTests {

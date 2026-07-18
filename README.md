@@ -76,12 +76,37 @@ extension Version: TLVCodable {
 }
 ```
 
+### Swift Binary Parsing
+
+On Swift 6.2+ toolchains the library integrates [swift-binary-parsing](https://github.com/apple/swift-binary-parsing): `TLVContainer.init(data:)` is backed by its safe, bounds-checked parser, and `TLVTypeCode`, `TLVItem` and `TLVContainer` conform to `ExpressibleByParsing` for throwing, span-based parsing:
+
+```swift
+import BinaryParsing
+import TLVCoding
+
+// parse a whole container
+let container = try TLVContainer(parsing: data)
+
+// or consume items from a ParserSpan
+try data.withParserSpan { input in
+    let item = try TLVItem(parsing: &input)
+    ...
+}
+```
+
+The dependency raises the Apple platform deployment targets (macOS 13, iOS 16, watchOS 9, tvOS 16) and can be skipped with the `SWIFTPM_ENABLE_BINARY_PARSING` environment variable:
+
+```bash
+SWIFTPM_ENABLE_BINARY_PARSING=0 swift build
+```
+
 ### Embedded Swift
 
 Macros are disabled under Embedded Swift (write conformances by hand) and the swift-syntax dependency can be skipped entirely with the `SWIFTPM_ENABLE_MACROS` environment variable:
 
 ```bash
-SWIFTPM_ENABLE_MACROS=0 swift build --target TLVCoding \
+SWIFTPM_ENABLE_MACROS=0 SWIFTPM_ENABLE_BINARY_PARSING=0 \
+    swift build --target TLVCoding \
     --triple armv7em-none-none-eabi \
     -Xswiftc -enable-experimental-feature -Xswiftc Embedded \
     -Xswiftc -wmo

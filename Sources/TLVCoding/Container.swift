@@ -49,6 +49,12 @@ public struct TLVContainer: Equatable, Hashable, Sendable {
 
     /// Parse a container from TLV8 data.
     public init?(data: Data) {
+        #if canImport(BinaryParsing) && !hasFeature(Embedded)
+        guard let container = try? TLVContainer(parsing: data) else {
+            return nil
+        }
+        self = container
+        #else
         var items = [TLVItem]()
         var index = data.startIndex
         while index < data.endIndex {
@@ -68,6 +74,7 @@ public struct TLVContainer: Equatable, Hashable, Sendable {
             index = valueEnd
         }
         self.items = items
+        #endif
     }
 }
 
