@@ -5,18 +5,10 @@ on: [push]
 jobs:
   mac:
     name: macOS
-    strategy:
-      matrix:
-        swift: [5.7.3]
-        os: [macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     steps:
-    - name: Install Swift
-      uses: slashmo/install-swift@v0.3.0
-      with:
-        version: ${{ matrix.swift }}
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Swift Version
       run: swift --version
     - name: Build (Debug)
@@ -28,21 +20,13 @@ jobs:
 
   coverage:
     name: Code Coverage
-    strategy:
-      matrix:
-        swift: [5.7.3]
-        os: [macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     permissions:
       contents: read
       code-quality: write # required by actions/upload-code-coverage
     steps:
-    - name: Install Swift
-      uses: slashmo/install-swift@v0.3.0
-      with:
-        version: ${{ matrix.swift }}
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Swift Version
       run: swift --version
     - name: Export coverage and enforce threshold
@@ -69,16 +53,12 @@ jobs:
     name: Linux
     strategy:
       matrix:
-        swift: [5.1.5, 5.5, 5.6.3, 5.7.3]
-        os: [ubuntu-20.04]
-    runs-on: ${{ matrix.os }}
+        swift: [6.3.3]
+    runs-on: ubuntu-latest
+    container: swift:${{ matrix.swift }}
     steps:
-    - name: Install Swift
-      uses: slashmo/install-swift@v0.3.0
-      with:
-        version: ${{ matrix.swift }}
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Swift Version
       run: swift --version
     - name: Build (Debug)
