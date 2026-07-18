@@ -6,7 +6,7 @@
 //  (e.g. Embedded Swift). Not API-complete — TLV round-tripping only.
 //
 
-#if !canImport(Foundation) || hasFeature(Embedded)
+#if (!canImport(FoundationEssentials) && !canImport(Foundation)) || hasFeature(Embedded)
 
 public struct Data: Sendable {
 
